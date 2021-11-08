@@ -3,9 +3,10 @@ package com.tekartik.sqflite;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.database.Cursor;
+import org.spatialite.database.SQLiteDatabase;
+
 import android.database.SQLException;
 import android.database.sqlite.SQLiteCantOpenDatabaseException;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;

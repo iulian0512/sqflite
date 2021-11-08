@@ -16,6 +16,7 @@ rootProject.allprojects {
     repositories {
         google()
         jcenter()
+        maven { url "https://jitpack.io" }
     }
 }
 
@@ -43,4 +44,5 @@ android {
 
 dependencies {
     testImplementation 'junit:junit:4.13.1'
+    implementation 'com.github.sevar83:android-spatialite:2.0.1'
 }
