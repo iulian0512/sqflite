@@ -88,6 +88,10 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
     @SuppressLint("UseSparseArrays")
     static final Map<Integer, Database> databaseMap = new HashMap<>();
 
+    static {
+        System.loadLibrary("android_spatialite");
+    }
+
     // Needed public constructor
     public SqflitePlugin() {
 

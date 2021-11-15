@@ -44,5 +44,6 @@ android {
 
 dependencies {
     testImplementation 'junit:junit:4.13.1'
-    implementation 'com.github.sevar83:android-spatialite:2.0.1'
+    implementation 'com.github.iulian0512:android-spatialite:2.0.7'
+
 }
