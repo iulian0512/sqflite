@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
+
 // ignore: implementation_imports
 import 'package:sqflite/src/factory_mixin.dart' as impl;
 import 'package:sqflite/utils/utils.dart';
@@ -54,6 +56,22 @@ class _ManualTestPageState extends State<ManualTestPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     items = <MenuItem>[
+      MenuItem('SQLite version', () async {
+        final db = await openDatabase(inMemoryDatabasePath);
+        final results = await db.rawQuery('select sqlite_version()');
+        print('select sqlite_version(): $results');
+        var version = results.first.values.first;
+        print('sqlite version: $version');
+        await db.close();
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('select sqlite_version(): $version')));
+      }, summary: 'select sqlite_version()'),
+      MenuItem('Factory information', () async {
+        var info = databaseFactory.toString();
+        print('sqlite database factory: $info');
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(info)));
+      }, summary: 'toString()'),
       MenuItem('openDatabase', () async {
         await _openDatabase();
       }, summary: 'Open the database'),
@@ -103,8 +121,38 @@ class _ManualTestPageState extends State<ManualTestPage> {
         await Navigator.of(context).push(MaterialPageRoute(builder: (_) {
           return const MultipleDbTestPage();
         }));
-      }, summary: 'Open multiple databases')
+      }, summary: 'Open multiple databases'),
+      ...[800000, 1500000, 15000000, 150000000]
+          .map((size) => MenuItem('Big blob $size', () async {
+                await testBigBlog(size);
+              }))
     ];
+  }
+
+  Future<void> testBigBlog(int size) async {
+    // await Sqflite.devSetDebugModeOn(true);
+    var db = await openDatabase(inMemoryDatabasePath, version: 1,
+        onCreate: (Database db, int version) async {
+      await db
+          .execute('CREATE TABLE Test (id INTEGER PRIMARY KEY, value BLOB)');
+    });
+    try {
+      var blob =
+          Uint8List.fromList(List.generate(size, (index) => index % 256));
+      var id = await db.insert('Test', {'value': blob});
+
+      /// Get the value field from a given id
+      Future<Uint8List> getValue(int id) async {
+        return ((await db.query('Test', where: 'id = $id')).first)['value']
+            as Uint8List;
+      }
+
+      var ok = (await getValue(id)).length == blob.length;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('$size: $ok')));
+    } finally {
+      await db.close();
+    }
   }
 
   @override
@@ -233,8 +281,7 @@ class _SimpleDbTestPageState extends State<SimpleDbTestPage> {
               final result =
                   firstIntValue(await db.query('test', columns: ['COUNT(*)']));
               // Temp for nnbd successfull lint
-              // ignore: deprecated_member_use
-              Scaffold.of(context).showSnackBar(SnackBar(
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text('$result records'),
                 duration: const Duration(milliseconds: 700),
               ));
