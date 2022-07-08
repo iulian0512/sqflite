@@ -33,6 +33,7 @@ import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
+import io.flutter.plugin.common.StandardMethodCodec;
 
 import static com.tekartik.sqflite.Constant.CMD_GET;
 import static com.tekartik.sqflite.Constant.ERROR_BAD_PARAM;
@@ -118,7 +119,9 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
 
     private void onAttachedToEngine(Context applicationContext, BinaryMessenger messenger) {
         this.context = applicationContext;
-        methodChannel = new MethodChannel(messenger, Constant.PLUGIN_KEY);
+        methodChannel = new MethodChannel(messenger, Constant.PLUGIN_KEY,
+                                          StandardMethodCodec.INSTANCE,
+                                          messenger.makeBackgroundTaskQueue());
         methodChannel.setMethodCallHandler(this);
     }
 
@@ -303,17 +306,16 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
     //
     // query
     //
-    private void onQueryCall(final MethodCall call, Result result) {
+    private void onQueryCall(final MethodCall call, final Result result) {
 
         final Database database = getDatabaseOrError(call, result);
         if (database == null) {
             return;
         }
-        final BgResult bgResult = new BgResult(result);
         handler.post(new Runnable() {
             @Override
             public void run() {
-                MethodCallOperation operation = new MethodCallOperation(call, bgResult);
+                MethodCallOperation operation = new MethodCallOperation(call, result);
                 query(database, operation);
 
             }
@@ -323,18 +325,17 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
     //
     // Sqflite.batch
     //
-    private void onBatchCall(final MethodCall call, Result result) {
+    private void onBatchCall(final MethodCall call, final Result result) {
 
         final Database database = getDatabaseOrError(call, result);
         if (database == null) {
             return;
         }
-        final BgResult bgResult = new BgResult(result);
         handler.post(new Runnable() {
             @Override
             public void run() {
 
-                MethodCallOperation mainOperation = new MethodCallOperation(call, bgResult);
+                MethodCallOperation mainOperation = new MethodCallOperation(call, result);
                 boolean noResult = mainOperation.getNoResult();
                 boolean continueOnError = mainOperation.getContinueOnError();
 
@@ -355,7 +356,7 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
                                 operation.handleErrorContinue(results);
                             } else {
                                 // we stop at the first error
-                                operation.handleError(bgResult);
+                                operation.handleError(result);
                                 return;
                             }
                             break;
@@ -367,7 +368,7 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
                                 operation.handleErrorContinue(results);
                             } else {
                                 // we stop at the first error
-                                operation.handleError(bgResult);
+                                operation.handleError(result);
                                 return;
                             }
                             break;
@@ -379,7 +380,7 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
                                 operation.handleErrorContinue(results);
                             } else {
                                 // we stop at the first error
-                                operation.handleError(bgResult);
+                                operation.handleError(result);
                                 return;
                             }
                             break;
@@ -391,21 +392,21 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
                                 operation.handleErrorContinue(results);
                             } else {
                                 // we stop at the first error
-                                operation.handleError(bgResult);
+                                operation.handleError(result);
                                 return;
                             }
                             break;
                         default:
-                            bgResult.error(ERROR_BAD_PARAM, "Batch method '" + method + "' not supported", null);
+                            result.error(ERROR_BAD_PARAM, "Batch method '" + method + "' not supported", null);
                             return;
                     }
                 }
                 // Set the results of all operations
                 // devLog(TAG, "results " + results);
                 if (noResult) {
-                    bgResult.success(null);
+                    result.success(null);
                 } else {
-                    bgResult.success(results);
+                    result.success(results);
                 }
             }
         });
@@ -536,17 +537,16 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
     //
     // Insert
     //
-    private void onInsertCall(final MethodCall call, Result result) {
+    private void onInsertCall(final MethodCall call, final Result result) {
 
         final Database database = getDatabaseOrError(call, result);
         if (database == null) {
             return;
         }
-        final BgResult bgResult = new BgResult(result);
         handler.post(new Runnable() {
             @Override
             public void run() {
-                MethodCallOperation operation = new MethodCallOperation(call, bgResult);
+                MethodCallOperation operation = new MethodCallOperation(call, result);
                 insert(database, operation);
             }
 
@@ -556,23 +556,22 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
     //
     // Sqflite.execute
     //
-    private void onExecuteCall(final MethodCall call, Result result) {
+    private void onExecuteCall(final MethodCall call, final Result result) {
 
         final Database database = getDatabaseOrError(call, result);
         if (database == null) {
             return;
         }
-        final BgResult bgResult = new BgResult(result);
         handler.post(new Runnable() {
             @Override
             public void run() {
 
                 Boolean inTransaction;
 
-                if (executeOrError(database, call, bgResult) == null) {
+                if (executeOrError(database, call, result) == null) {
                     return;
                 }
-                bgResult.success(null);
+                result.success(null);
             }
         });
     }
@@ -617,17 +616,16 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
     //
     // Sqflite.update
     //
-    private void onUpdateCall(final MethodCall call, Result result) {
+    private void onUpdateCall(final MethodCall call, final Result result) {
 
         final Database database = getDatabaseOrError(call, result);
         if (database == null) {
             return;
         }
-        final BgResult bgResult = new BgResult(result);
         handler.post(new Runnable() {
             @Override
             public void run() {
-                MethodCallOperation operation = new MethodCallOperation(call, bgResult);
+                MethodCallOperation operation = new MethodCallOperation(call, result);
                 update(database, operation);
             }
         });
@@ -714,7 +712,7 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
     //
     // Sqflite.open
     //
-    private void onOpenDatabaseCall(final MethodCall call, Result result) {
+    private void onOpenDatabaseCall(final MethodCall call, final Result result) {
         final String path = call.argument(PARAM_PATH);
         final Boolean readOnly = call.argument(PARAM_READ_ONLY);
         final boolean inMemory = isInMemoryPath(path);
@@ -760,8 +758,6 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
 
         final Database database = new Database(path, databaseId, singleInstance, logLevel);
 
-        final BgResult bgResult = new BgResult(result);
-
         synchronized (databaseMapLocker) {
             // Create handler if necessary
             if (handler == null) {
@@ -791,7 +787,7 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
                                     if (!directory.exists()) {
                                         if (!directory.mkdirs()) {
                                             if (!directory.exists()) {
-                                                bgResult.error(Constant.SQLITE_ERROR, Constant.ERROR_OPEN_FAILED + " " + path, null);
+                                                result.error(Constant.SQLITE_ERROR, Constant.ERROR_OPEN_FAILED + " " + path, null);
                                                 return;
                                             }
                                         }
@@ -806,7 +802,7 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
                                         database.open();
                                     }
                                 } catch (Exception e) {
-                                    MethodCallOperation operation = new MethodCallOperation(call, bgResult);
+                                    MethodCallOperation operation = new MethodCallOperation(call, result);
                                     handleException(e, operation, database);
                                     return;
                                 }
@@ -822,7 +818,7 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
                                 }
                             }
 
-                            bgResult.success(makeOpenResult(databaseId, false, false));
+                            result.success(makeOpenResult(databaseId, false, false));
                         }
 
                     });
@@ -833,7 +829,7 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
     //
     // Sqflite.close
     //
-    private void onCloseDatabaseCall(MethodCall call, Result result) {
+    private void onCloseDatabaseCall(MethodCall call, final Result result) {
         final int databaseId = call.argument(PARAM_ID);
         final Database database = getDatabaseOrError(call, result);
         if (database == null) {
@@ -855,7 +851,6 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
             }
         }
 
-        final BgResult bgResult = new BgResult(result);
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -863,7 +858,7 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
                     closeDatabase(database);
                 }
 
-                bgResult.success(null);
+                result.success(null);
             }
         });
 
@@ -872,7 +867,7 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
     //
     // Sqflite.open
     //
-    private void onDeleteDatabaseCall(final MethodCall call, Result result) {
+    private void onDeleteDatabaseCall(final MethodCall call, final Result result) {
         final String path = call.argument(PARAM_PATH);
         Database foundOpenedDatabase = null;
         // Look for in memory instance
@@ -899,7 +894,6 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
         }
         final Database openedDatabase = foundOpenedDatabase;
 
-        final BgResult bgResult = new BgResult(result);
         final Runnable deleteRunnable = new Runnable() {
             @Override
             public void run() {
@@ -917,7 +911,7 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
                         Log.e(TAG, "error " + e + " while closing database " + databaseId);
                     }
                 }
-                bgResult.success(null);
+                result.success(null);
             }
         };
 
@@ -1016,7 +1010,7 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
         }
     }
 
-    void onOptionsCall(final MethodCall call, Result result) {
+    void onOptionsCall(final MethodCall call, final Result result) {
         Object paramAsList = call.argument(Constant.PARAM_QUERY_AS_MAP_LIST);
         if (paramAsList != null) {
             QUERY_AS_MAP_LIST = Boolean.TRUE.equals(paramAsList);
@@ -1034,53 +1028,12 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
 
     //private static class Database
 
-    void onGetDatabasesPathCall(final MethodCall call, Result result) {
+    void onGetDatabasesPathCall(final MethodCall call, final Result result) {
         if (databasesPath == null) {
             String dummyDatabaseName = "tekartik_sqflite.db";
             File file = context.getDatabasePath(dummyDatabaseName);
             databasesPath = file.getParent();
         }
         result.success(databasesPath);
-    }
-
-
-    private class BgResult implements Result {
-        // Caller handler
-        final Handler handler = new Handler(Looper.getMainLooper());
-        private final Result result;
-
-        private BgResult(Result result) {
-            this.result = result;
-        }
-
-        // make sure to respond in the caller thread
-        public void success(final Object results) {
-
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    result.success(results);
-                }
-            });
-        }
-
-        public void error(final String errorCode, final String errorMessage, final Object data) {
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    result.error(errorCode, errorMessage, data);
-                }
-            });
-        }
-
-        @Override
-        public void notImplemented() {
-            handler.post(new Runnable() {
-                @Override
-                public void run() {
-                    result.notImplemented();
-                }
-            });
-        }
     }
 }
