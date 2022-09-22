@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
@@ -156,14 +154,10 @@ class TypeTestPage extends TestPage {
             .rawQuery('SELECT hex(value) FROM Test WHERE id = ?', [id]);
         expect(hexResult[0].values.first, '01020304');
 
-        // try blob lookup - does work on iOS only
+        // try blob lookup (works on Android since 2022-09-19)
         var rows = await data.db
             .rawQuery('SELECT * FROM Test WHERE value = ?', [blob1234]);
-        if (Platform.isIOS || Platform.isMacOS) {
-          expect(rows.length, 1);
-        } else {
-          expect(rows.length, 0);
-        }
+        expect(rows.length, 1);
 
         // try blob lookup using hex
         rows = await data.db.rawQuery(

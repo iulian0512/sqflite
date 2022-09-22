@@ -599,6 +599,35 @@ CREATE TABLE test (
     test('big blob 800 Ko', () async {
       await testBigBlog(800000);
     });
+
+    Future<void> testBigText(int size) async {
+      // await Sqflite.devSetDebugModeOn(true);
+      final path = await initDeleteDb('big_text.db');
+      var db = await openDatabase(path, version: 1,
+          onCreate: (Database db, int version) async {
+        await db
+            .execute('CREATE TABLE Test (id INTEGER PRIMARY KEY, value TEXT)');
+      });
+      try {
+        var text = List.generate(size, (index) => 'A').join();
+        var id = await db.insert('Test', {'value': text});
+
+        /// Get the value field from a given id
+        Future<String> getValue(int id) async {
+          return ((await db.query('Test', where: 'id = $id')).first)['value']
+              as String;
+        }
+
+        expect((await getValue(id)).length, text.length);
+      } finally {
+        await db.close();
+      }
+    }
+
+    // We don't test automatically above as it crashes seriously on Android
+    test('big text 800 Ko', () async {
+      await testBigText(800000);
+    });
     /*
     test('big blob 1500 Ko (fails on Android sqlite)', () async {
       await testBigBlog(1500000);
@@ -666,6 +695,13 @@ CREATE TABLE test (
       }).timeout(Duration(seconds: 3));
     });
     */
+    test('missing parameter', () async {
+      var db = await openDatabase(inMemoryDatabasePath);
+      await db.execute(
+          'CREATE TABLE IF NOT EXISTS foo (id int primary key, name text)');
+      await db.rawQuery('SELECT * FROM foo WHERE id=?');
+      await db.close();
+    });
   }
 }
 

@@ -8,7 +8,7 @@ void run(SqfliteTestContext context) {
   group('raw', () {
     test('BatchQuery', () async {
       // await Sqflite.devSetDebugModeOn();
-      var path = await context.initDeleteDb('batch.db');
+      var path = await context.initDeleteDb('batch_query.db');
       var db = await factory.openDatabase(path);
 
       // empty batch
@@ -134,6 +134,29 @@ void run(SqfliteTestContext context) {
         results = await batch2.commit();
         expect(results, [1]);
       });
+
+      await db.close();
+    });
+
+    test('batch in manual transaction', () async {
+      var path = await context.initDeleteDb('batch_custom_transaction.db');
+      var db = await factory.openDatabase(path);
+
+      await db.execute('BEGIN');
+
+      final batch = db.batch();
+      batch
+        ..execute('CREATE TABLE Test (id INTEGER PRIMARY KEY, name TEXT)')
+        ..rawInsert('INSERT INTO Test (name) VALUES (?)', ['item1']);
+
+      await batch.apply(noResult: true);
+      await db.execute('COMMIT');
+
+      // Sanity check too see whether values have been written
+      final result = await db.rawQuery('SELECT * FROM Test');
+      expect(result, [
+        {'id': 1, 'name': 'item1'}
+      ]);
 
       await db.close();
     });
