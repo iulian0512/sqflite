@@ -5,9 +5,9 @@ import android.content.Context;
 import android.database.Cursor;
 import org.spatialite.database.SQLiteDatabase;
 
-import android.database.SQLException;
-import android.database.sqlite.SQLiteCantOpenDatabaseException;
-import android.database.sqlite.SQLiteCursor;
+import org.spatialite.SQLException;
+import org.spatialite.database.SQLiteCantOpenDatabaseException;
+import org.spatialite.database.SQLiteCursor;
 import android.database.sqlite.SQLiteCursorDriver;
 import android.database.sqlite.SQLiteQuery;
 import android.os.Handler;
@@ -497,8 +497,10 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
             // for references. Simply embed the int/long into the query itself
             cursor = database.getReadableDatabase().rawQueryWithFactory(
                     new SQLiteDatabase.CursorFactory() {
+
+
                         @Override
-                        public Cursor newCursor(SQLiteDatabase sqLiteDatabase, SQLiteCursorDriver sqLiteCursorDriver, String s, SQLiteQuery sqLiteQuery) {
+                        public Cursor newCursor(SQLiteDatabase sqLiteDatabase, org.spatialite.database.SQLiteCursorDriver sqLiteCursorDriver, String s, org.spatialite.database.SQLiteQuery sqLiteQuery) {
                             command.bindTo(sqLiteQuery);
                             return new SQLiteCursor(sqLiteCursorDriver, s, sqLiteQuery);
                         }

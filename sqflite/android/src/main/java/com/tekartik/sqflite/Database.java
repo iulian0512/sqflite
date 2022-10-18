@@ -1,5 +1,5 @@
 package com.tekartik.sqflite;
-
+import static com.tekartik.sqflite.Constant.TAG;
 import org.spatialite.DatabaseErrorHandler;
 import  org.spatialite.database.SQLiteDatabase;
 import android.content.Context;

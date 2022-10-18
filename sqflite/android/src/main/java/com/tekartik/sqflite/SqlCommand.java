@@ -1,6 +1,6 @@
 package com.tekartik.sqflite;
 
-import android.database.sqlite.SQLiteProgram;
+import org.spatialite.database.SQLiteProgram;
 import android.util.Log;
 
 import com.tekartik.sqflite.dev.Debug;
