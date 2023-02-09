@@ -1,10 +1,5 @@
 package com.tekartik.sqflite;
 
-import org.spatialite.database.SQLiteDatabase;
-
-import org.spatialite.SQLException;
-import org.spatialite.database.SQLiteCantOpenDatabaseException;
-import org.spatialite.database.SQLiteCursor;
 import static com.tekartik.sqflite.Constant.CMD_GET;
 import static com.tekartik.sqflite.Constant.MEMORY_DATABASE_PATH;
 import static com.tekartik.sqflite.Constant.METHOD_ANDROID_SET_LOCALE;
@@ -228,9 +223,6 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
     // Sqflite.batch
     //
     private void onBatchCall(final MethodCall call, final Result result) {
-
-
-                        public Cursor newCursor(SQLiteDatabase sqLiteDatabase, org.spatialite.database.SQLiteCursorDriver sqLiteCursorDriver, String s, org.spatialite.database.SQLiteQuery sqLiteQuery) {
 
         final Database database = getDatabaseOrError(call, result);
         if (database == null) {
