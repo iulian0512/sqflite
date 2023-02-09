@@ -1,5 +1,4 @@
 // ignore: implementation_imports
-import 'package:sqflite_common/src/arg_utils.dart';
 import 'package:sqflite_common_ffi/src/sqflite_ffi_impl.dart';
 import 'package:sqflite_common_ffi/src/sqflite_import.dart';
 
@@ -35,7 +34,8 @@ class SqfliteFfiException extends SqfliteDatabaseException {
     var map = <String, Object?>{};
     if (details != null) {
       if (details is Map) {
-        var detailsMap = Map.from(details!).cast<String, Object?>();
+        var detailsMap =
+            Map<String, Object?>.from(details!).cast<String, Object?>();
 
         /// remove sql and arguments that we h
         detailsMap.remove('arguments');

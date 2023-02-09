@@ -4,21 +4,27 @@
 //
 //  Created by Alexandre Roux on 09/01/2018.
 //
-#import "SqflitePlugin.h"
-
 #ifndef SqfliteOperation_h
 #define SqfliteOperation_h
 
+#import "SqfliteImport.h"
+
+@class FMDatabase;
 @interface SqfliteOperation : NSObject
 
 - (NSString*)getMethod;
 - (NSString*)getSql;
 - (NSArray*)getSqlArguments;
-- (NSNumber*)getInTransactionArgument;
+- (NSNumber*)getInTransactionChange;
 - (void)success:(NSObject*)results;
 - (void)error:(FlutterError*)error;
 - (bool)getNoResult;
 - (bool)getContinueOnError;
+- (bool)hasNullTransactionId;
+- (NSNumber*)getTransactionId;
+// Generic way to get any argument
+- (id)getArgument:(NSString*)key;
+- (bool)hasArgument:(NSString*)key;
 
 @end
 
@@ -39,10 +45,18 @@
 @interface SqfliteMethodCallOperation : SqfliteOperation
 
 @property (atomic, retain) FlutterMethodCall* flutterMethodCall;
-@property (atomic, assign) FlutterResult flutterResult;
+@property (atomic, copy) FlutterResult flutterResult;
 
 + (SqfliteMethodCallOperation*)newWithCall:(FlutterMethodCall*)flutterMethodCall result:(FlutterResult)flutterResult;
 
 @end
 
-#endif /* SqfliteOperation_h */
+typedef void(^SqfliteOperationHandler)(FMDatabase* db, SqfliteOperation* operation);
+@interface SqfliteQueuedOperation : NSObject
+
+@property (atomic, retain) SqfliteOperation* operation;
+@property (atomic, copy) SqfliteOperationHandler handler;
+
+@end
+
+#endif // SqfliteOperation_h

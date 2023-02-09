@@ -19,8 +19,9 @@ Sample `analysis_options.yaml` file:
 
 ```
 analyzer:
-  strong-mode:
-    implicit-casts: false
+    language:
+    strict-casts: true
+    strict-inference: true
 ```
 
 # Common issues
@@ -36,7 +37,7 @@ Unhandled exception: type '_InternalLinkedHashMap' is not a subtype of type 'Map
 ```
 
 Make sure you create object of type `Map<String, Object?>` and not simply `Map` for records you
-insert and update. The option `implicit-casts: false` explained above helps to find such issues
+insert and update. The option `language: strict-casts: false` explained above helps to find such issues
 
 ## MissingPluginException
 
@@ -94,7 +95,8 @@ Before raising this issue, try adding another well established plugin (the simpl
 
 ## Warning database has been locked for... 
 
-I you get this output in debug mode:
+If you get this output in debug mode:
+
 > Warning database has been locked for 0:00:10.000000. Make sure you always use the transaction object for database operations during a transaction
 
 One common mistake is to use the db object in a transaction:
@@ -201,6 +203,22 @@ end
 
 Since Flutter templates change over time for new sdk, you might sometimes try to delete the ios folder and re-create
 your project.
+
+### Module 'FMDB' not found
+
+Since v2.2.1-1, you might encounter `Module 'FMDB' not found` on old projects.
+
+You need to add `use_frameworks!` in your Podfile:
+
+```
+target 'Runner' do
+  # Needed since v2.2.1-1
+  # In newly create project, this is set but it is not
+  # always the case on older projects
+  use_frameworks!
+  ...
+end
+```
 
 ## Error in Flutter web
 

@@ -419,7 +419,6 @@ INSERT INTO test (value) VALUES (10);
       await db.execute(
         'CREATE TABLE `groups` (`id`	INTEGER NOT NULL UNIQUE, `service_id`	INTEGER, `official`	BOOLEAN, `type`	TEXT, `access`	TEXT, `ads`	BOOLEAN, `mute`	BOOLEAN, `read`	INTEGER, `background`	TEXT, `last_message_time`	INTEGER, `last_message_id`	INTEGER, `deleted_to`	INTEGER, `is_admin`	BOOLEAN, `is_owner`	BOOLEAN, `description`	TEXT, `pin`	BOOLEAN, `name`	TEXT, `opposite_id`	INTEGER, `badge`	INTEGER, `member_count`	INTEGER, `identifier`	TEXT, `join_link`	TEXT, `hash`	TEXT, `service_info`	TEXT, `seen`	INTEGER, `pinned_message`	INTEGER, `delivery`	INTEGER, PRIMARY KEY(`id`) ) WITHOUT ROWID;',
       );
-      print('1');
       await db.execute(
         'CREATE INDEX groups_id ON groups ( service_id )',
       );
@@ -565,5 +564,27 @@ INSERT INTO test (value) VALUES (10);
       // print(resourceId);
     }
     await db.close();
+  });
+  test('wal', () async {
+    var path = await context.initDeleteDb('exp_wal.db');
+    var db = await factory.openDatabase(path,
+        options: OpenDatabaseOptions(
+            version: 1,
+            onConfigure: (Database db) async {
+              await db.execute('PRAGMA journal_mode=WAL');
+              await db.rawQuery('PRAGMA journal_mode=WAL');
+            },
+            onCreate: (Database db, int version) async {
+              await db.execute('CREATE TABLE test (id INTEGER)');
+              await db.insert('test', <String, Object?>{'id': 1});
+            }));
+    try {
+      var resultSet = await db.rawQuery('SELECT id FROM test');
+      expect(resultSet, [
+        {'id': 1},
+      ]);
+    } finally {
+      await db.close();
+    }
   });
 }

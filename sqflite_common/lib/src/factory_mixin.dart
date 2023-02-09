@@ -37,7 +37,7 @@ mixin SqfliteDatabaseFactoryMixin
   Future<T> wrapDatabaseException<T>(Future<T> Function() action) => action();
 
   /// Invoke native method and wrap exception.
-  Future<T> safeInvokeMethod<T>(String method, [dynamic arguments]) =>
+  Future<T> safeInvokeMethod<T>(String method, [Object? arguments]) =>
       wrapDatabaseException<T>(() => invokeMethod(method, arguments));
 
   /// Open helpers for single instances only.
@@ -50,7 +50,6 @@ mixin SqfliteDatabaseFactoryMixin
   /// Optional tag (read-only)
   String? tag;
 
-  @override
   @override
   SqfliteDatabase newDatabase(
       SqfliteDatabaseOpenHelper openHelper, String path) {
@@ -175,9 +174,11 @@ mixin SqfliteDatabaseFactoryMixin
     return path == inMemoryDatabasePath;
   }
 
+  final bool _kIsWeb = identical(0, 0.0);
+
   /// path must be non null
   Future<String> fixPath(String path) async {
-    if (isInMemoryDatabasePath(path)) {
+    if (isInMemoryDatabasePath(path) || _kIsWeb) {
       // nothing
     } else {
       if (isRelative(path)) {

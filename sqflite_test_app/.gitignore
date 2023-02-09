@@ -29,6 +29,7 @@
 .pub-cache/
 .pub/
 /build/
+.metadata
 
 # Web related
 
@@ -43,5 +44,7 @@
 /windows/
 /ios/
 
+# flutter
+.metadata
 # Coverage
 /coverage

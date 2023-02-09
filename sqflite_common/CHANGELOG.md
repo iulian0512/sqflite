@@ -1,3 +1,18 @@
+## 2.4.2+2
+
+* add experimental logger support.
+
+## 2.4.1
+
+* add support for `Batch.length` to help finding the last added operation index.
+* strict-casts and sdk 2.18 support
+
+## 2.4.0+2
+
+* add support for `Database.queryCursor()` and `Database.rawQueryCursor()`
+* base experimental web support
+* Support for transaction v2
+
 ## 2.3.0
 
 - Add `apply()` method to `Batch`. It will execute statements in that batch

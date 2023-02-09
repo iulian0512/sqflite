@@ -4,6 +4,7 @@
 
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:sqflite/sqflite.dart';
@@ -14,6 +15,9 @@ import 'package:sqflite_test_app/setup_flutter.dart';
 
 class SqfliteDriverTestContext extends SqfliteLocalTestContext {
   SqfliteDriverTestContext() : super(databaseFactory: databaseFactory);
+
+  @override
+  bool get supportsRecoveredInTransaction => true;
 }
 
 var testContext = SqfliteDriverTestContext();
@@ -21,7 +25,7 @@ var testContext = SqfliteDriverTestContext();
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  if (Platform.isWindows || Platform.isLinux) {
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
     sqfliteFfiInit();
     sqfliteFfiInitAsMockMethodCallHandler();
   }

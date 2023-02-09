@@ -29,6 +29,9 @@ const String methodUpdate = 'update';
 /// Native sql SELECT method.
 const String methodQuery = 'query';
 
+/// Native sql SELECT method.
+const String methodQueryCursorNext = 'queryCursorNext';
+
 /// deprecated.
 const String methodGetPlatformVersion = 'getPlatformVersion';
 
@@ -98,6 +101,18 @@ const String paramId = 'id';
 /// True if the database is in a transaction
 const String paramInTransaction = 'inTransaction';
 
+/// For beginTransaction, set it to null
+/// Returned by beingTransaction for new implementation
+///
+/// Transaction param, to set in all calls during a transaction.
+///
+/// To set to null when beginning a transaction, it tells the implementation
+/// that transactionId is supported by the client (compared to a raw BEGIN calls)
+const String paramTransactionId = 'transactionId';
+
+/// Special transaction id to force even if a transaction is running.
+const int paramTransactionIdValueForce = -1;
+
 /// True when opening the database (bool)
 const String paramReadOnly = 'readOnly';
 
@@ -113,6 +128,25 @@ const String paramSql = 'sql';
 ///
 /// List.
 const String paramSqlArguments = 'arguments';
+
+/// SQL query cursorId parameter.
+///
+/// Integer.
+const String paramCursorId = 'cursorId';
+
+/// SQL query cursor page size parameter.
+///
+/// If null to cursor is used
+///
+/// Integer.
+const String paramCursorPageSize = 'cursorPageSize';
+
+/// SQL query cursor next cancel parameter.
+///
+/// true or false
+///
+/// boolean.
+const String paramCursorCancel = 'cancel';
 
 /// SQLite error code
 const String sqliteErrorCode = 'sqlite_error';
@@ -143,3 +177,6 @@ final sqfliteLogLevelVerbose = 2;
 // @deprecated
 /// deprecated
 const String methodSetDebugModeOn = 'debugMode';
+
+/// Default buffer size for queryCursor
+const int queryCursorBufferSizeDefault = 100;

@@ -1,6 +1,39 @@
-## 2.1.0
+## 2.2.5-0
 
-* Android, fix parameter binding for non string parameters
+* Fix concurrency issue in database worker pool (chriscui@google.com)
+* add android `setLocale` API call support.
+
+## 2.2.4+1
+
+* Experimental logger support.
+
+## 2.2.3-1
+
+* strict-casts and sdk 2.18 support
+ 
+## 2.2.2
+
+* Fix iOS/MacOS FMDB include for non-swift project
+
+## 2.2.1
+
+* Allow multiple threads on Android, thanks to zhenpingcui
+
+## 2.2.1-1
+
+* Fix iOS/MacOS FMDB include
+
+## 2.2.0+3
+
+* Implements `Database.queryCursor()` and `Database.rawQueryCursor()`
+* Dependency update
+* Initial support of cross isolate safe
+* Transaction v2 update
+
+## 2.1.0+1
+
+* Android: fix parameter binding for non string parameters
+* Android: fix unit test
 
 ## 2.0.4-dev.1
 
@@ -134,7 +167,7 @@ native world and executing `ROLLBACK` to prevent `SQLITE_BUSY` error
 
 ## 0.11.1
 
-* add `Sqlflite.hex` to allow querying on blob fields
+* add `Sqflite.hex` to allow querying on blob fields
 
 ## 0.11.0
 

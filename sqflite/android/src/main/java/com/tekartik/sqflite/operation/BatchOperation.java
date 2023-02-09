@@ -1,17 +1,17 @@
 package com.tekartik.sqflite.operation;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import io.flutter.plugin.common.MethodChannel;
-
 import static com.tekartik.sqflite.Constant.PARAM_ERROR;
 import static com.tekartik.sqflite.Constant.PARAM_ERROR_CODE;
 import static com.tekartik.sqflite.Constant.PARAM_ERROR_DATA;
 import static com.tekartik.sqflite.Constant.PARAM_ERROR_MESSAGE;
 import static com.tekartik.sqflite.Constant.PARAM_METHOD;
 import static com.tekartik.sqflite.Constant.PARAM_RESULT;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import io.flutter.plugin.common.MethodChannel;
 
 /**
  * Created by alex on 09/01/18.
@@ -21,28 +21,6 @@ public class BatchOperation extends BaseOperation {
     final Map<String, Object> map;
     final BatchOperationResult operationResult = new BatchOperationResult();
     final boolean noResult;
-
-    public class BatchOperationResult implements OperationResult {
-        // success
-        Object result;
-
-        // error
-        String errorCode;
-        String errorMessage;
-        Object errorData;
-
-        @Override
-        public void success(Object result) {
-            this.result = result;
-        }
-
-        @Override
-        public void error(String errorCode, String errorMessage, Object data) {
-            this.errorCode = errorCode;
-            this.errorMessage = errorMessage;
-            this.errorData = data;
-        }
-    }
 
     public BatchOperation(Map<String, Object> map, boolean noResult) {
         this.map = map;
@@ -58,6 +36,11 @@ public class BatchOperation extends BaseOperation {
     @Override
     public <T> T getArgument(String key) {
         return (T) map.get(key);
+    }
+
+    @Override
+    public boolean hasArgument(String key) {
+        return map.containsKey(key);
     }
 
     @Override
@@ -99,6 +82,28 @@ public class BatchOperation extends BaseOperation {
     public void handleErrorContinue(List<Map<String, Object>> results) {
         if (!getNoResult()) {
             results.add(getOperationError());
+        }
+    }
+
+    public class BatchOperationResult implements OperationResult {
+        // success
+        Object result;
+
+        // error
+        String errorCode;
+        String errorMessage;
+        Object errorData;
+
+        @Override
+        public void success(Object result) {
+            this.result = result;
+        }
+
+        @Override
+        public void error(String errorCode, String errorMessage, Object data) {
+            this.errorCode = errorCode;
+            this.errorMessage = errorMessage;
+            this.errorData = data;
         }
     }
 

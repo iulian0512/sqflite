@@ -1,13 +1,12 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
+import 'dart:io' as io;
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite/utils/utils.dart';
-import 'package:sqflite_example/src/dev_utils.dart';
+import 'package:sqflite_example/utils.dart';
 
+import 'src/common_import.dart';
 import 'test_page.dart';
 
 // ignore_for_file: avoid_print
@@ -58,36 +57,9 @@ class RawTestPage extends TestPage {
         batch.rawInsert('INSERT INTO Test (name) VALUES (?)', ['item 2']);
         await batch.commit();
 
-        // ignore: deprecated_member_use, deprecated_member_use_from_same_package
-        var sqfliteOptions = SqfliteOptions()..queryAsMapList = true;
-        // ignore: deprecated_member_use
-        await Sqflite.devSetOptions(sqfliteOptions);
         var sql = 'SELECT id, name FROM Test';
         // ignore: deprecated_member_use
-        var result = await db.devInvokeSqlMethod('query', sql);
-        var expected = [
-          {'id': 1, 'name': 'item 1'},
-          {'id': 2, 'name': 'item 2'}
-        ];
-        print('result as map list $result');
-        expect(result, expected);
-
-        // empty
-        sql = 'SELECT id, name FROM Test WHERE id=1234';
-        // ignore: deprecated_member_use
-        result = await db.devInvokeSqlMethod('query', sql);
-        expected = [];
-        print('result as map list $result');
-        expect(result, expected);
-
-        // ignore: deprecated_member_use, deprecated_member_use_from_same_package
-        sqfliteOptions = SqfliteOptions()..queryAsMapList = false;
-        // ignore: deprecated_member_use
-        await Sqflite.devSetOptions(sqfliteOptions);
-
-        sql = 'SELECT id, name FROM Test';
-        // ignore: deprecated_member_use
-        var resultSet = await db.devInvokeSqlMethod('query', sql);
+        var resultSet = await db.devInvokeSqlMethod<Object?>('query', sql);
         var expectedResultSetMap = {
           'columns': ['id', 'name'],
           'rows': [
@@ -104,7 +76,17 @@ class RawTestPage extends TestPage {
         resultSet = await db.devInvokeSqlMethod('query', sql);
         expectedResultSetMap = {};
         print('result as r/c $resultSet');
-        expect(resultSet, expectedResultSetMap);
+        try {
+          // This might be just for compatibility
+          expect(resultSet, expectedResultSetMap);
+        } catch (e) {
+          // Allow empty result
+          expectedResultSetMap = {
+            'columns': ['id', 'name'],
+            'rows': []
+          };
+          expect(resultSet, expectedResultSetMap);
+        }
       } finally {
         await db.close();
       }
@@ -122,7 +104,7 @@ class RawTestPage extends TestPage {
           await db.transaction((txn) async {
             final count = Sqflite.firstIntValue(
                 await txn.rawQuery('SELECT COUNT(*) FROM Test'))!;
-            await Future.delayed(const Duration(milliseconds: 40));
+            await Future<void>.delayed(const Duration(milliseconds: 40));
             await txn
                 .rawInsert('INSERT INTO Test (name) VALUES (?)', ['item $i']);
             //print(await db.query('SELECT COUNT(*) FROM Test'));
@@ -147,9 +129,9 @@ class RawTestPage extends TestPage {
       final path = await initDeleteDb('simple_concurrency_1.db');
       final db = await openDatabase(path);
       try {
-        final step1 = Completer();
-        final step2 = Completer();
-        final step3 = Completer();
+        final step1 = Completer<void>();
+        final step2 = Completer<void>();
+        final step3 = Completer<void>();
 
         Future action1() async {
           await db
@@ -203,9 +185,9 @@ class RawTestPage extends TestPage {
       final path = await initDeleteDb('simple_concurrency_2.db');
       final db = await openDatabase(path);
       try {
-        final step1 = Completer();
-        final step2 = Completer();
-        final step3 = Completer();
+        final step1 = Completer<void>();
+        final step2 = Completer<void>();
+        final step3 = Completer<void>();
 
         Future action1() async {
           await db
@@ -315,25 +297,27 @@ class RawTestPage extends TestPage {
       }
     });
 
-    test('Debug mode (log)', () async {
-      //await Sqflite.devSetDebugModeOn(false);
-      final path = await initDeleteDb('debug_mode.db');
-      final db = await openDatabase(path);
-      try {
-        final debugModeOn = await Sqflite.getDebugModeOn();
-        await Sqflite.setDebugModeOn(true);
-        await db.setVersion(1);
-        await Sqflite.setDebugModeOn(false);
-        // this message should not appear
-        await db.setVersion(2);
-        await Sqflite.setDebugModeOn(true);
-        await db.setVersion(3);
-        // restore
-        await Sqflite.setDebugModeOn(debugModeOn);
-      } finally {
-        await db.close();
-      }
-    });
+    if (supportsCompatMode) {
+      test('Debug mode (log)', () async {
+        //await Sqflite.devSetDebugModeOn(false);
+        final path = await initDeleteDb('debug_mode.db');
+        final db = await openDatabase(path);
+        try {
+          final debugModeOn = await Sqflite.getDebugModeOn();
+          await Sqflite.setDebugModeOn(true);
+          await db.setVersion(1);
+          await Sqflite.setDebugModeOn(false);
+          // this message should not appear
+          await db.setVersion(2);
+          await Sqflite.setDebugModeOn(true);
+          await db.setVersion(3);
+          // restore
+          await Sqflite.setDebugModeOn(debugModeOn);
+        } finally {
+          await db.close();
+        }
+      });
+    }
 
     test('Demo', () async {
       // await Sqflite.devSetDebugModeOn();
@@ -352,8 +336,11 @@ class RawTestPage extends TestPage {
             'CREATE TABLE Test (id INTEGER PRIMARY KEY, name TEXT, value INTEGER, num REAL)');
         print('table created');
         var id = await database.rawInsert(
-            'INSERT INTO Test(name, value, num) VALUES("some name",1234,?)',
-            [456.789]);
+            // This does not work using ffi
+            // 'INSERT INTO Test(name, value, num) VALUES("some name",1234,?)',
+            // [456.789]);
+            'INSERT INTO Test(name, value, num) VALUES(?,1234,?)',
+            ['some name', 456.789]);
         print('inserted1: $id');
         id = await database.rawInsert(
             'INSERT INTO Test(name, value) VALUES(?, ?)',
@@ -397,9 +384,11 @@ class RawTestPage extends TestPage {
 
       // Make sure the directory exists
       try {
-        // ignore: avoid_slow_async_io
-        if (!await Directory(databasesPath).exists()) {
-          await Directory(databasesPath).create(recursive: true);
+        if (!kIsWeb) {
+          // ignore: avoid_slow_async_io
+          if (!await io.Directory(databasesPath).exists()) {
+            await io.Directory(databasesPath).create(recursive: true);
+          }
         }
       } catch (_) {}
 
@@ -419,7 +408,9 @@ class RawTestPage extends TestPage {
       // Insert some records in a transaction
       await database.transaction((txn) async {
         final id1 = await txn.rawInsert(
-            'INSERT INTO Test(name, value, num) VALUES("some name", 1234, 456.789)');
+            // 'INSERT INTO Test(name, value, num) VALUES("some name", 1234, 456.789)'); This does not work using ffi
+            'INSERT INTO Test(name, value, num) VALUES(?, 1234, 456.789)',
+            ['some name']);
         print('inserted1: $id1');
         final id2 = await txn.rawInsert(
             'INSERT INTO Test(name, value, num) VALUES(?, ?, ?)',
@@ -504,7 +495,7 @@ class RawTestPage extends TestPage {
       }
     });
 
-    test('without rowid', () async {
+    test('Without rowid', () async {
       // Sqflite.devSetDebugModeOn(true);
       // this fails on iOS
 
@@ -517,19 +508,33 @@ class RawTestPage extends TestPage {
         await db
             .execute('CREATE TABLE Test (name TEXT PRIMARY KEY) WITHOUT ROWID');
         var id = await db.insert('Test', {'name': 'test'});
-        // it seems to always return 1 on Android, 0 on iOS...
-        if (Platform.isIOS || Platform.isMacOS) {
+
+        // it seems to always return 1 on Android, 0 on iOS..., 0 using ffi
+        var rowIdAlways0 =
+            (!supportsCompatMode || (platform.isIOS || platform.isMacOS));
+
+        if (rowIdAlways0) {
           expect(id, 0);
         } else {
           expect(id, 1);
         }
         id = await db.insert('Test', {'name': 'other'});
         // it seems to always return 1
-        if (Platform.isIOS || Platform.isMacOS) {
+        if (rowIdAlways0) {
           expect(id, 0);
         } else {
           expect(id, 1);
         }
+
+        // Insert conflict
+        // Only tested on Android for now...
+        try {
+          id = await db.insert('Test', {'name': 'other'});
+        } on DatabaseException catch (e) {
+          // Test.name (code 1555 SQLITE_CONSTRAINT_PRIMARYKEY)) sql 'INSERT INTO Test (name) VALUES (?)' args [other] running without rowid
+          expect(e.getResultCode(), 1555);
+        }
+
         // notice the order is based on the primary key
         final list = await db.query('Test');
         expect(list, [
@@ -581,6 +586,79 @@ class RawTestPage extends TestPage {
                   'SELECT CASE WHEN 0 = 1 THEN 1 ELSE ? END', [value])),
               value);
         }
+      } finally {
+        await db.close();
+      }
+    });
+
+    test('Query by page', () async {
+      // await databaseFactory.debugSetLogLevel(sqfliteLogLevelVerbose);
+
+      //final path = await initDeleteDb('query_by_page.db');
+      //final db = await openDatabase(path);
+      final db = await openDatabase(inMemoryDatabasePath);
+      try {
+        await db.execute('''
+      CREATE TABLE test (
+        id INTEGER PRIMARY KEY
+      )''');
+        await db.insert('test', {'id': 1});
+        await db.insert('test', {'id': 2});
+        await db.insert('test', {'id': 3});
+        var resultsList = <List>[];
+
+        // Use a cursor
+        var cursor =
+            await db.rawQueryCursor('SELECT * FROM test', null, bufferSize: 2);
+        resultsList.clear();
+        var results = <Map<String, Object?>>[];
+        while (await cursor.moveNext()) {
+          results.add(cursor.current);
+        }
+        expect(results, [
+          {'id': 1},
+          {'id': 2},
+          {'id': 3}
+        ]);
+
+        // Multiple cursors a cursor
+        var cursor1 =
+            await db.rawQueryCursor('SELECT * FROM test', null, bufferSize: 2);
+        var cursor2 =
+            await db.rawQueryCursor('SELECT * FROM test', null, bufferSize: 1);
+        await cursor1.moveNext();
+        expect(cursor1.current.values, [1]);
+        await cursor2.moveNext();
+        await cursor2.moveNext();
+        expect(cursor2.current.values, [2]);
+        await cursor1.moveNext();
+        expect(cursor1.current.values, [2]);
+        await cursor1.close();
+        await cursor1.close(); // ok to call twice
+        try {
+          cursor1.current.values;
+          fail('should fail get current');
+        } on StateError catch (_) {}
+        await cursor2.moveNext();
+        expect(cursor2.current.values, [3]);
+        expect(await cursor2.moveNext(), isFalse);
+        expect(await cursor1.moveNext(), isFalse);
+        try {
+          cursor2.current.values;
+          fail('should fail get current');
+        } on StateError catch (_) {}
+
+        // No data
+        cursor = await db.rawQueryCursor('SELECT * FROM test WHERE id > ?', [3],
+            bufferSize: 2);
+        expect(await cursor.moveNext(), isFalse);
+
+        // Matching page size
+        cursor = await db.rawQueryCursor('SELECT * FROM test WHERE id > ?', [1],
+            bufferSize: 2);
+        expect(await cursor.moveNext(), isTrue);
+        expect(await cursor.moveNext(), isTrue);
+        expect(await cursor.moveNext(), isFalse);
       } finally {
         await db.close();
       }

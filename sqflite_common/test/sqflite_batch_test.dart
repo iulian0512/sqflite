@@ -26,9 +26,9 @@ void main() {
           'execute',
           {
             'sql': 'BEGIN IMMEDIATE',
-            'arguments': null,
             'id': 1,
-            'inTransaction': true
+            'inTransaction': true,
+            'transactionId': null
           },
           null
         ],
@@ -36,7 +36,7 @@ void main() {
           'batch',
           {
             'operations': [
-              {'method': 'execute', 'sql': 'PRAGMA dummy', 'arguments': null}
+              {'method': 'execute', 'sql': 'PRAGMA dummy'}
             ],
             'id': 1
           },
@@ -44,7 +44,7 @@ void main() {
         ],
         [
           'execute',
-          {'sql': 'COMMIT', 'arguments': null, 'id': 1, 'inTransaction': false},
+          {'sql': 'COMMIT', 'id': 1, 'inTransaction': false},
           null
         ],
         ...endCommands,
@@ -52,8 +52,10 @@ void main() {
       final factory = scenario.factory;
       final db = await factory.openDatabase(inMemoryDatabasePath);
       var batch = db.batch();
+      expect(batch.length, 0);
       batch.execute('PRAGMA dummy');
-      await batch.commit();
+      expect(batch.length, 1);
+      expect(await batch.commit(), isEmpty); // Mock return values
       await db.close();
       scenario.end();
     });
@@ -64,7 +66,7 @@ void main() {
           'batch',
           {
             'operations': [
-              {'method': 'execute', 'sql': 'PRAGMA dummy', 'arguments': null}
+              {'method': 'execute', 'sql': 'PRAGMA dummy'}
             ],
             'id': 1
           },

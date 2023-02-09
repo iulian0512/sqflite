@@ -72,74 +72,25 @@ public class TestSqflitePluginTest {
     }
 
     @Test
-    public void walEnabled() {
-        // False, uncomment in manifest to check for true
-        assertFalse(Database.checkWalEnabled(appContext));
+    public void databaseExists() throws IOException {
+        File file = new File(appContext.getFilesDir(), "exists_file.db");
+        try {
+            file.delete();
+        } catch (Exception e) {
+        }
+        assertEquals(false, Database.existsDatabase(file.getPath()));
+        Database database = new Database(appContext, file.getPath(), 0, true, 0);
+        try {
+            database.open();
+            database.sqliteDatabase.execSQL("PRAGMA version = 1");
+        } finally {
+            database.close();
+        }
     }
 
     @Test
-    public void openCloseDatabase() throws InterruptedException {
-        /*
-        Looper.prepare();
-        final Data data = new Data();
-        // Context of the app under test.
-        Context appContext = ApplicationProvider.getApplicationContext();
-        TestSqflitePlugin plugin = new TestSqflitePlugin(appContext);
-
-        // Open the database
-        data.signal = new CountDownLatch(1);
-        Map<String, Object> param = new HashMap<>();
-        param.put("path", ":memory:");
-        MethodCall call = new MethodCall("openDatabase", param);
-        MethodChannel.Result result = new MethodChannel.Result() {
-            @Override
-            public void success(Object o) {
-                Log.d(TAG, "openDatabase: " + o);
-                data.id = (Integer) o;
-                // Should be the database id
-
-                data.signal.countDown();
-            }
-
-            @Override
-            public void error(String s, String s1, Object o) {
-
-            }
-
-            @Override
-            public void notImplemented() {
-
-            }
-        };
-        plugin.onMethodCall(call, result);
-        data.signal.await();
-
-        // Close
-        data.signal = new CountDownLatch(1);
-        param = new HashMap<>();
-        param.put("id", data.id);
-        call = new MethodCall("closeDatabase", param);
-        result = new MethodChannel.Result() {
-            @Override
-            public void success(Object o) {
-                // should be null
-                Log.d(TAG, "closeDatabase: " + o);
-                data.signal.countDown();
-            }
-
-            @Override
-            public void error(String s, String s1, Object o) {
-
-            }
-
-            @Override
-            public void notImplemented() {
-
-            }
-        };
-        plugin.onMethodCall(call, result);
-        data.signal.await();
-
-    */
+    public void walEnabled() {
+        // False, uncomment in manifest to check for true
+        assertFalse(Database.checkWalEnabled(appContext));
     }
 }

@@ -1,6 +1,3 @@
-import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter_driver/driver_extension.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite/sqflite.dart';
@@ -15,11 +12,12 @@ class SqfliteDriverTestContext extends SqfliteLocalTestContext {
 }
 
 var testContext = SqfliteDriverTestContext();
+
 void main() {
   final completer = Completer<String>();
   enableFlutterDriverExtension(handler: (_) => completer.future);
 
-  if (Platform.isWindows || Platform.isLinux) {
+  if (platform.isWindows || platform.isLinux) {
     sqfliteFfiInit();
     sqfliteFfiInitAsMockMethodCallHandler();
   }
@@ -29,4 +27,14 @@ void main() {
   group('driver', () {
     all.run(testContext);
   });
+
+  if (platform.isAndroid) {
+    group('driver with 2 threads', () {
+      setUpAll(() async {
+        // ignore: deprecated_member_use, deprecated_member_use_from_same_package
+        await Sqflite.devSetOptions(SqfliteOptions()..androidThreadCount = 2);
+      });
+      all.run(testContext);
+    });
+  }
 }

@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:sqflite_common/sql.dart' show ConflictAlgorithm;
+import 'package:sqflite_common/src/database.dart';
+import 'package:sqflite_common/src/database_mixin.dart';
 import 'package:sqflite_common/src/open_options.dart' as impl;
+import 'package:sqflite_common/src/transaction.dart';
 
 export 'package:sqflite_common/sql.dart' show ConflictAlgorithm;
 export 'package:sqflite_common/src/constant.dart'
@@ -151,6 +154,35 @@ abstract class DatabaseExecutor {
   Future<List<Map<String, Object?>>> rawQuery(String sql,
       [List<Object?>? arguments]);
 
+  /// Executes a raw SQL SELECT with a cursor.
+  ///
+  /// Returns a cursor, that must either be closed when reaching the end or
+  /// that must be closed manually. You have to do [QueryCursor.moveNext] to
+  /// navigate (forward) in the cursor.
+  ///
+  /// Since its implementation cache rows for efficiency, [bufferSize] specified the
+  /// number of rows to cache (100 being the default)
+  ///
+  /// ```
+  /// var cursor = await database.rawQueryCursor('SELECT * FROM Test');
+  /// ```
+  Future<QueryCursor> rawQueryCursor(String sql, List<Object?>? arguments,
+      {int? bufferSize});
+
+  /// See [DatabaseExecutor.rawQueryCursor] for details about the argument [bufferSize]
+  /// See [DatabaseExecutor.query] for the other arguments.
+  Future<QueryCursor> queryCursor(String table,
+      {bool? distinct,
+      List<String>? columns,
+      String? where,
+      List<Object?>? whereArgs,
+      String? groupBy,
+      String? having,
+      String? orderBy,
+      int? limit,
+      int? offset,
+      int? bufferSize});
+
   /// Executes a raw SQL UPDATE query and returns
   /// the number of changes made.
   ///
@@ -223,6 +255,9 @@ abstract class DatabaseExecutor {
   /// a [Transaction], committing the batch is deferred to when the transaction
   /// completes (but [Batch.apply] or [Batch.commit] still need to be called).
   Batch batch();
+
+  /// Get the database.
+  Database get database;
 }
 
 /// Database transaction
@@ -254,28 +289,40 @@ abstract class Database implements DatabaseExecutor {
   Future<T> transaction<T>(Future<T> Function(Transaction txn) action,
       {bool? exclusive});
 
-  ///
-  /// Get the database inner version
-  ///
-  Future<int> getVersion();
-
   /// Tell if the database is open, returns false once close has been called
   bool get isOpen;
 
-  ///
-  /// Set the database inner version
-  /// Used internally for open helpers and automatic versioning
-  ///
-  Future<void> setVersion(int version);
-
   /// testing only
   @Deprecated('Dev only')
-  Future<T> devInvokeMethod<T>(String method, [dynamic arguments]);
+  Future<T> devInvokeMethod<T>(String method, [Object? arguments]);
 
   /// testing only
   @Deprecated('Dev only')
   Future<T> devInvokeSqlMethod<T>(String method, String sql,
       [List<Object?>? arguments]);
+}
+
+/// Helpers
+extension SqfliteDatabaseExecutorExt on DatabaseExecutor {
+  SqfliteDatabase get _db => (this as SqfliteDatabaseExecutor).db;
+  SqfliteTransaction? get _txn => (this as SqfliteDatabaseExecutor).txn;
+
+  ///
+  /// Set the database inner version
+  /// Used internally for open helpers and automatic versioning
+  ///
+  Future<void> setVersion(int version) {
+    _db.checkNotClosed();
+    return _db.txnSetVersion(_txn, version);
+  }
+
+  ///
+  /// Get the database inner version
+  ///
+  Future<int> getVersion() {
+    _db.checkNotClosed();
+    return _db.txnGetVersion(_txn);
+  }
 }
 
 /// Prototype of the function called when the version has changed.
@@ -517,4 +564,23 @@ abstract class Batch {
 
   /// See [Database.query];
   void rawQuery(String sql, [List<Object?>? arguments]);
+
+  /// Current batch size
+  int get length;
+}
+
+/// Cursor for query by page cursor.
+abstract class QueryCursor {
+  /// Move to the next row.
+  ///
+  /// If false is returned, the cursor is closed and is no longer valid.
+  Future<bool> moveNext();
+
+  /// Current row data.
+  Map<String, Object?> get current;
+
+  /// Close the current cursor.
+  ///
+  /// Not needed when reaching the end of the cursor (moveNext returning false.
+  Future<void> close();
 }

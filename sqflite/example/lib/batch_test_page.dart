@@ -9,7 +9,7 @@ class BatchTestPage extends TestPage {
   BatchTestPage({Key? key}) : super('Batch tests', key: key) {
     test('BatchQuery', () async {
       // await Sqflite.devSetDebugModeOn();
-      final path = await initDeleteDb('batch.db');
+      final path = await initDeleteDb('batch_query.db');
       final db = await openDatabase(path);
 
       // empty batch
@@ -42,7 +42,7 @@ class BatchTestPage extends TestPage {
       await db.close();
     });
     test('Batch', () async {
-      // await Sqflite.devSetDebugModeOn();
+      // await databaseFactory.devSetDebugModeOn();
       final path = await initDeleteDb('batch.db');
       final db = await openDatabase(path);
 
@@ -50,7 +50,7 @@ class BatchTestPage extends TestPage {
       var batch = db.batch();
       var results = await batch.commit();
       expect(results.length, 0);
-      expect(results, []);
+      expect(results, isEmpty);
 
       // one create table
       batch = db.batch();
@@ -112,7 +112,7 @@ class BatchTestPage extends TestPage {
           where: 'name = ?', whereArgs: <String>['item']);
       batch.delete('Test', where: 'name = ?', whereArgs: ['item']);
       results = await batch.commit(noResult: true);
-      expect(results, []);
+      expect(results, isEmpty);
 
       await db.close();
     });

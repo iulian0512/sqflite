@@ -5,6 +5,7 @@ import 'package:path/path.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite_common/sqflite_dev.dart';
 import 'package:sqflite_common/sqlite_api.dart';
+import 'package:sqflite_common/src/env_utils.dart'; // ignore: implementation_imports
 
 /// Test context for testing
 abstract class SqfliteTestContext {
@@ -53,9 +54,15 @@ abstract class SqfliteTestContext {
   /// true if Linux
   bool get isWindows;
 
+  /// True if web
+  bool get isWeb => kSqfliteIsWeb;
+
   /// Set debug mode on
   @Deprecated('Deb only')
   Future devSetDebugModeOn(bool on);
+
+  /// Native (android, ios, macos) only for now
+  bool get supportsRecoveredInTransaction;
 }
 
 /// sqflite test context mixin.
@@ -70,6 +77,9 @@ mixin SqfliteTestContextMixin implements SqfliteTestContext {
   /// FFI implementation is strict
   @override
   bool get strict => true;
+
+  @override
+  bool get isWeb => kSqfliteIsWeb;
 
   @override
   path.Context get pathContext => path.context;
@@ -92,6 +102,9 @@ mixin SqfliteTestContextMixin implements SqfliteTestContext {
   Future devSetDebugModeOn(bool on) => databaseFactory
       // ignore: deprecated_member_use
       .setLogLevel(on ? sqfliteLogLevelVerbose : sqfliteLogLevelNone);
+
+  @override
+  bool get supportsRecoveredInTransaction => false;
 }
 
 /// sqflite local test context mixin.
@@ -135,19 +148,19 @@ mixin SqfliteLocalTestContextMixin implements SqfliteTestContext {
   }
 
   @override
-  bool get isAndroid => Platform.isAndroid;
+  bool get isAndroid => !kSqfliteIsWeb && Platform.isAndroid;
 
   @override
-  bool get isIOS => Platform.isIOS;
+  bool get isIOS => !kSqfliteIsWeb && Platform.isIOS;
 
   @override
-  bool get isMacOS => Platform.isMacOS;
+  bool get isMacOS => !kSqfliteIsWeb && Platform.isMacOS;
 
   @override
-  bool get isLinux => Platform.isLinux;
+  bool get isLinux => !kSqfliteIsWeb && Platform.isLinux;
 
   @override
-  bool get isWindows => Platform.isWindows;
+  bool get isWindows => !kSqfliteIsWeb && Platform.isWindows;
 }
 
 /// Based local file based context.

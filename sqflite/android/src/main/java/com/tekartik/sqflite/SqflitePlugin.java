@@ -1,31 +1,49 @@
 package com.tekartik.sqflite;
 
-import android.annotation.SuppressLint;
-import android.content.Context;
-import android.database.Cursor;
 import org.spatialite.database.SQLiteDatabase;
 
 import org.spatialite.SQLException;
 import org.spatialite.database.SQLiteCantOpenDatabaseException;
 import org.spatialite.database.SQLiteCursor;
-import android.database.sqlite.SQLiteCursorDriver;
-import android.database.sqlite.SQLiteQuery;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.Looper;
+import static com.tekartik.sqflite.Constant.CMD_GET;
+import static com.tekartik.sqflite.Constant.MEMORY_DATABASE_PATH;
+import static com.tekartik.sqflite.Constant.METHOD_ANDROID_SET_LOCALE;
+import static com.tekartik.sqflite.Constant.METHOD_BATCH;
+import static com.tekartik.sqflite.Constant.METHOD_CLOSE_DATABASE;
+import static com.tekartik.sqflite.Constant.METHOD_DATABASE_EXISTS;
+import static com.tekartik.sqflite.Constant.METHOD_DEBUG;
+import static com.tekartik.sqflite.Constant.METHOD_DEBUG_MODE;
+import static com.tekartik.sqflite.Constant.METHOD_DELETE_DATABASE;
+import static com.tekartik.sqflite.Constant.METHOD_EXECUTE;
+import static com.tekartik.sqflite.Constant.METHOD_GET_DATABASES_PATH;
+import static com.tekartik.sqflite.Constant.METHOD_GET_PLATFORM_VERSION;
+import static com.tekartik.sqflite.Constant.METHOD_INSERT;
+import static com.tekartik.sqflite.Constant.METHOD_OPEN_DATABASE;
+import static com.tekartik.sqflite.Constant.METHOD_OPTIONS;
+import static com.tekartik.sqflite.Constant.METHOD_QUERY;
+import static com.tekartik.sqflite.Constant.METHOD_QUERY_CURSOR_NEXT;
+import static com.tekartik.sqflite.Constant.METHOD_UPDATE;
+import static com.tekartik.sqflite.Constant.PARAM_CMD;
+import static com.tekartik.sqflite.Constant.PARAM_ID;
+import static com.tekartik.sqflite.Constant.PARAM_LOCALE;
+import static com.tekartik.sqflite.Constant.PARAM_LOG_LEVEL;
+import static com.tekartik.sqflite.Constant.PARAM_PATH;
+import static com.tekartik.sqflite.Constant.PARAM_READ_ONLY;
+import static com.tekartik.sqflite.Constant.PARAM_RECOVERED;
+import static com.tekartik.sqflite.Constant.PARAM_RECOVERED_IN_TRANSACTION;
+import static com.tekartik.sqflite.Constant.PARAM_SINGLE_INSTANCE;
+import static com.tekartik.sqflite.Constant.TAG;
+
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.Process;
 import android.util.Log;
 
 import com.tekartik.sqflite.dev.Debug;
-import com.tekartik.sqflite.operation.BatchOperation;
-import com.tekartik.sqflite.operation.ExecuteOperation;
 import com.tekartik.sqflite.operation.MethodCallOperation;
-import com.tekartik.sqflite.operation.Operation;
-import com.tekartik.sqflite.operation.SqlErrorInfo;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,59 +56,26 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.StandardMethodCodec;
 
-import static com.tekartik.sqflite.Constant.CMD_GET;
-import static com.tekartik.sqflite.Constant.EMPTY_STRING_ARRAY;
-import static com.tekartik.sqflite.Constant.ERROR_BAD_PARAM;
-import static com.tekartik.sqflite.Constant.MEMORY_DATABASE_PATH;
-import static com.tekartik.sqflite.Constant.METHOD_BATCH;
-import static com.tekartik.sqflite.Constant.METHOD_CLOSE_DATABASE;
-import static com.tekartik.sqflite.Constant.METHOD_DEBUG;
-import static com.tekartik.sqflite.Constant.METHOD_DEBUG_MODE;
-import static com.tekartik.sqflite.Constant.METHOD_DELETE_DATABASE;
-import static com.tekartik.sqflite.Constant.METHOD_EXECUTE;
-import static com.tekartik.sqflite.Constant.METHOD_GET_DATABASES_PATH;
-import static com.tekartik.sqflite.Constant.METHOD_GET_PLATFORM_VERSION;
-import static com.tekartik.sqflite.Constant.METHOD_INSERT;
-import static com.tekartik.sqflite.Constant.METHOD_OPEN_DATABASE;
-import static com.tekartik.sqflite.Constant.METHOD_OPTIONS;
-import static com.tekartik.sqflite.Constant.METHOD_QUERY;
-import static com.tekartik.sqflite.Constant.METHOD_UPDATE;
-import static com.tekartik.sqflite.Constant.PARAM_CMD;
-import static com.tekartik.sqflite.Constant.PARAM_ID;
-import static com.tekartik.sqflite.Constant.PARAM_IN_TRANSACTION;
-import static com.tekartik.sqflite.Constant.PARAM_LOG_LEVEL;
-import static com.tekartik.sqflite.Constant.PARAM_OPERATIONS;
-import static com.tekartik.sqflite.Constant.PARAM_PATH;
-import static com.tekartik.sqflite.Constant.PARAM_READ_ONLY;
-import static com.tekartik.sqflite.Constant.PARAM_RECOVERED;
-import static com.tekartik.sqflite.Constant.PARAM_RECOVERED_IN_TRANSACTION;
-import static com.tekartik.sqflite.Constant.PARAM_SINGLE_INSTANCE;
-import static com.tekartik.sqflite.Constant.PARAM_SQL;
-import static com.tekartik.sqflite.Constant.PARAM_SQL_ARGUMENTS;
-import static com.tekartik.sqflite.Constant.TAG;
-
 /**
  * SqflitePlugin Android implementation
  */
 public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
 
     static final Map<String, Integer> _singleInstancesByPath = new HashMap<>();
-    static private boolean QUERY_AS_MAP_LIST = false; // set by options
-    static private int THREAD_PRIORITY = Process.THREAD_PRIORITY_DEFAULT;
-    static int logLevel = LogLevel.none;
-
-    static private final Object databaseMapLocker = new Object();
-    static private final Object openCloseLocker = new Object();
-    // local cache
-    static String databasesPath;
-    private Context context;
-    static private int databaseId = 0; // incremental database id
-    // Database thread execution
-    static private HandlerThread handlerThread;
-    static private Handler handler;
-    private MethodChannel methodChannel;
     @SuppressLint("UseSparseArrays")
     static final Map<Integer, Database> databaseMap = new HashMap<>();
+    static private final Object databaseMapLocker = new Object();
+    static private final Object openCloseLocker = new Object();
+    static int logLevel = LogLevel.none;
+    // local cache
+    static String databasesPath;
+    static private int THREAD_PRIORITY = Process.THREAD_PRIORITY_DEFAULT;
+    static private int THREAD_COUNT = 1;
+    static private int databaseId = 0; // incremental database id
+    // Database worker pool execution
+    static private DatabaseWorkerPool databaseWorkerPool;
+    private Context context;
+    private MethodChannel methodChannel;
 
     static {
         System.loadLibrary("android_spatialite");
@@ -113,92 +98,6 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
     public static void registerWith(io.flutter.plugin.common.PluginRegistry.Registrar registrar) {
         SqflitePlugin sqflitePlugin = new SqflitePlugin();
         sqflitePlugin.onAttachedToEngine(registrar.context(), registrar.messenger());
-    }
-
-    @Override
-    public void onAttachedToEngine(FlutterPluginBinding binding) {
-        onAttachedToEngine(binding.getApplicationContext(), binding.getBinaryMessenger());
-    }
-
-    private void onAttachedToEngine(Context applicationContext, BinaryMessenger messenger) {
-        this.context = applicationContext;
-        methodChannel = new MethodChannel(messenger, Constant.PLUGIN_KEY,
-                                          StandardMethodCodec.INSTANCE,
-                                          messenger.makeBackgroundTaskQueue());
-        methodChannel.setMethodCallHandler(this);
-    }
-
-    @Override
-    public void onDetachedFromEngine(FlutterPluginBinding binding) {
-        context = null;
-        methodChannel.setMethodCallHandler(null);
-        methodChannel = null;
-    }
-
-    private static Object cursorValue(Cursor cursor, int index) {
-        switch (cursor.getType(index)) {
-            case Cursor.FIELD_TYPE_NULL:
-                return null;
-            case Cursor.FIELD_TYPE_INTEGER:
-                return cursor.getLong(index);
-            case Cursor.FIELD_TYPE_FLOAT:
-                return cursor.getDouble(index);
-            case Cursor.FIELD_TYPE_STRING:
-                return cursor.getString(index);
-            case Cursor.FIELD_TYPE_BLOB:
-                return cursor.getBlob(index);
-        }
-        return null;
-    }
-
-    private static List<Object> cursorRowToList(Cursor cursor, int length) {
-        List<Object> list = new ArrayList<>(length);
-
-        for (int i = 0; i < length; i++) {
-            Object value = cursorValue(cursor, i);
-            if (Debug.EXTRA_LOGV) {
-                String type = null;
-                if (value != null) {
-                    if (value.getClass().isArray()) {
-                        type = "array(" + value.getClass().getComponentType().getName() + ")";
-                    } else {
-                        type = value.getClass().getName();
-                    }
-                }
-                Log.d(TAG, "column " + i + " " + cursor.getType(i) + ": " + value + (type == null ? "" : " (" + type + ")"));
-            }
-            list.add(value);
-        }
-        return list;
-    }
-
-    private static Map<String, Object> cursorRowToMap(Cursor cursor) {
-        Map<String, Object> map = new HashMap<>();
-        String[] columns = cursor.getColumnNames();
-        int length = columns.length;
-        for (int i = 0; i < length; i++) {
-            if (Debug.EXTRA_LOGV) {
-                Log.d(TAG, "column " + i + " " + cursor.getType(i));
-            }
-            switch (cursor.getType(i)) {
-                case Cursor.FIELD_TYPE_NULL:
-                    map.put(columns[i], null);
-                    break;
-                case Cursor.FIELD_TYPE_INTEGER:
-                    map.put(columns[i], cursor.getLong(i));
-                    break;
-                case Cursor.FIELD_TYPE_FLOAT:
-                    map.put(columns[i], cursor.getDouble(i));
-                    break;
-                case Cursor.FIELD_TYPE_STRING:
-                    map.put(columns[i], cursor.getString(i));
-                    break;
-                case Cursor.FIELD_TYPE_BLOB:
-                    map.put(columns[i], cursor.getBlob(i));
-                    break;
-            }
-        }
-        return map;
     }
 
     static private Map<String, Object> fixMap(Map<Object, Object> map) {
@@ -241,6 +140,42 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
         return (path == null || path.equals(MEMORY_DATABASE_PATH));
     }
 
+    // {
+    // 'id': xxx
+    // 'recovered': true // if recovered only for single instance
+    // }
+    static Map makeOpenResult(int databaseId, boolean recovered, boolean recoveredInTransaction) {
+        Map<String, Object> result = new HashMap<>();
+        result.put(PARAM_ID, databaseId);
+        if (recovered) {
+            result.put(PARAM_RECOVERED, true);
+        }
+        if (recoveredInTransaction) {
+            result.put(PARAM_RECOVERED_IN_TRANSACTION, true);
+        }
+        return result;
+    }
+
+    @Override
+    public void onAttachedToEngine(FlutterPluginBinding binding) {
+        onAttachedToEngine(binding.getApplicationContext(), binding.getBinaryMessenger());
+    }
+
+    private void onAttachedToEngine(Context applicationContext, BinaryMessenger messenger) {
+        this.context = applicationContext;
+        methodChannel = new MethodChannel(messenger, Constant.PLUGIN_KEY,
+                StandardMethodCodec.INSTANCE,
+                messenger.makeBackgroundTaskQueue());
+        methodChannel.setMethodCallHandler(this);
+    }
+
+    @Override
+    public void onDetachedFromEngine(FlutterPluginBinding binding) {
+        context = null;
+        methodChannel.setMethodCallHandler(null);
+        methodChannel = null;
+    }
+
     private Context getContext() {
         return context;
     }
@@ -261,67 +196,31 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
         }
     }
 
-    private SqlCommand getSqlCommand(MethodCall call) {
-        String sql = call.argument(PARAM_SQL);
-        List<Object> arguments = call.argument(PARAM_SQL_ARGUMENTS);
-        return new SqlCommand(sql, arguments);
-    }
-
-    private Database executeOrError(Database database, MethodCall call, Result result) {
-        SqlCommand command = getSqlCommand(call);
-        Boolean inTransaction = call.argument(PARAM_IN_TRANSACTION);
-
-        Operation operation = new ExecuteOperation(result, command, inTransaction);
-        if (executeOrError(database, operation)) {
-            return database;
-        }
-        return null;
-    }
-
-    // Called during batch, warning duplicated code!
-    private boolean executeOrError(Database database, Operation operation) {
-        SqlCommand command = operation.getSqlCommand();
-        if (LogLevel.hasSqlLevel(database.logLevel)) {
-            Log.d(TAG, database.getThreadLogPrefix() + command);
-        }
-        Boolean inTransaction = operation.getInTransaction();
-
-        try {
-            database.getWritableDatabase().execSQL(command.getSql(), command.getSqlArguments());
-
-            // Success handle inTransaction change
-            if (Boolean.TRUE.equals(inTransaction)) {
-                database.inTransaction = true;
-            }
-            return true;
-        } catch (Exception exception) {
-            handleException(exception, operation, database);
-            return false;
-        } finally {
-            // failure? ignore for false
-            if (Boolean.FALSE.equals(inTransaction)) {
-                database.inTransaction = false;
-            }
-
-        }
-    }
-
     //
     // query
     //
     private void onQueryCall(final MethodCall call, final Result result) {
-
         final Database database = getDatabaseOrError(call, result);
         if (database == null) {
             return;
         }
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                MethodCallOperation operation = new MethodCallOperation(call, result);
-                query(database, operation);
+        databaseWorkerPool.post(database, () -> {
+            MethodCallOperation operation = new MethodCallOperation(call, result);
+            database.query(operation);
+        });
+    }
 
-            }
+    //
+    // cursor query next
+    //
+    private void onQueryCursorNextCall(final MethodCall call, final Result result) {
+        final Database database = getDatabaseOrError(call, result);
+        if (database == null) {
+            return;
+        }
+        databaseWorkerPool.post(database, () -> {
+            MethodCallOperation operation = new MethodCallOperation(call, result);
+            database.queryCursorNext(operation);
         });
     }
 
@@ -330,219 +229,14 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
     //
     private void onBatchCall(final MethodCall call, final Result result) {
 
+
+                        public Cursor newCursor(SQLiteDatabase sqLiteDatabase, org.spatialite.database.SQLiteCursorDriver sqLiteCursorDriver, String s, org.spatialite.database.SQLiteQuery sqLiteQuery) {
+
         final Database database = getDatabaseOrError(call, result);
         if (database == null) {
             return;
         }
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-
-                MethodCallOperation mainOperation = new MethodCallOperation(call, result);
-                boolean noResult = mainOperation.getNoResult();
-                boolean continueOnError = mainOperation.getContinueOnError();
-
-                List<Map<String, Object>> operations = call.argument(PARAM_OPERATIONS);
-                List<Map<String, Object>> results = new ArrayList<>();
-
-                //devLog(TAG, "operations " + operations);
-                for (Map<String, Object> map : operations) {
-                    //devLog(TAG, "map " + map);
-                    BatchOperation operation = new BatchOperation(map, noResult);
-                    String method = operation.getMethod();
-                    switch (method) {
-                        case METHOD_EXECUTE:
-                            if (execute(database, operation)) {
-                                //devLog(TAG, "results: " + operation.getBatchResults());
-                                operation.handleSuccess(results);
-                            } else if (continueOnError) {
-                                operation.handleErrorContinue(results);
-                            } else {
-                                // we stop at the first error
-                                operation.handleError(result);
-                                return;
-                            }
-                            break;
-                        case METHOD_INSERT:
-                            if (insert(database, operation)) {
-                                //devLog(TAG, "results: " + operation.getBatchResults());
-                                operation.handleSuccess(results);
-                            } else if (continueOnError) {
-                                operation.handleErrorContinue(results);
-                            } else {
-                                // we stop at the first error
-                                operation.handleError(result);
-                                return;
-                            }
-                            break;
-                        case METHOD_QUERY:
-                            if (query(database, operation)) {
-                                //devLog(TAG, "results: " + operation.getBatchResults());
-                                operation.handleSuccess(results);
-                            } else if (continueOnError) {
-                                operation.handleErrorContinue(results);
-                            } else {
-                                // we stop at the first error
-                                operation.handleError(result);
-                                return;
-                            }
-                            break;
-                        case METHOD_UPDATE:
-                            if (update(database, operation)) {
-                                //devLog(TAG, "results: " + operation.getBatchResults());
-                                operation.handleSuccess(results);
-                            } else if (continueOnError) {
-                                operation.handleErrorContinue(results);
-                            } else {
-                                // we stop at the first error
-                                operation.handleError(result);
-                                return;
-                            }
-                            break;
-                        default:
-                            result.error(ERROR_BAD_PARAM, "Batch method '" + method + "' not supported", null);
-                            return;
-                    }
-                }
-                // Set the results of all operations
-                // devLog(TAG, "results " + results);
-                if (noResult) {
-                    result.success(null);
-                } else {
-                    result.success(results);
-                }
-            }
-        });
-    }
-
-    // Return true on success
-    private boolean execute(Database database, final Operation operation) {
-        if (!executeOrError(database, operation)) {
-            return false;
-        }
-        operation.success(null);
-        return true;
-    }
-
-    // Return true on success
-    private boolean insert(Database database, final Operation operation) {
-        if (!executeOrError(database, operation)) {
-            return false;
-        }
-        // don't get last id if not expected
-        if (operation.getNoResult()) {
-            operation.success(null);
-            return true;
-        }
-
-        Cursor cursor = null;
-        // Read both the changes and last insert row id in on sql call
-        String sql = "SELECT changes(), last_insert_rowid()";
-
-        // Handle ON CONFLICT but ignore error, issue #164
-        // Read the number of changes before getting the inserted id
-        try {
-            SQLiteDatabase db = database.getWritableDatabase();
-
-            cursor = db.rawQuery(sql, null);
-            if (cursor != null && cursor.getCount() > 0 && cursor.moveToFirst()) {
-                final int changed = cursor.getInt(0);
-
-                // If the change count is 0, assume the insert failed
-                // and return null
-                if (changed == 0) {
-                    if (LogLevel.hasSqlLevel(database.logLevel)) {
-                        Log.d(TAG, database.getThreadLogPrefix() + "no changes (id was " + cursor.getLong(1) + ")");
-                    }
-                    operation.success(null);
-                    return true;
-                } else {
-                    final long id = cursor.getLong(1);
-                    if (LogLevel.hasSqlLevel(database.logLevel)) {
-                        Log.d(TAG, database.getThreadLogPrefix() + "inserted " + id);
-                    }
-                    operation.success(id);
-                    return true;
-                }
-            } else {
-                Log.e(TAG, database.getThreadLogPrefix() + "fail to read changes for Insert");
-            }
-            operation.success(null);
-            return true;
-        } catch (Exception exception) {
-            handleException(exception, operation, database);
-            return false;
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-    }
-
-    // Return true on success
-    private boolean query(Database database, final Operation operation) {
-        final SqlCommand command = operation.getSqlCommand();
-
-        List<Map<String, Object>> results = new ArrayList<>();
-        Map<String, Object> newResults = null;
-        List<List<Object>> rows = null;
-        int newColumnCount = 0;
-        if (LogLevel.hasSqlLevel(database.logLevel)) {
-            Log.d(TAG, database.getThreadLogPrefix() + command);
-        }
-        Cursor cursor = null;
-        final boolean queryAsMapList = QUERY_AS_MAP_LIST;
-        try {
-            // For query we sanitize as it only takes String which does not work
-            // for references. Simply embed the int/long into the query itself
-            cursor = database.getReadableDatabase().rawQueryWithFactory(
-                    new SQLiteDatabase.CursorFactory() {
-
-
-                        @Override
-                        public Cursor newCursor(SQLiteDatabase sqLiteDatabase, org.spatialite.database.SQLiteCursorDriver sqLiteCursorDriver, String s, org.spatialite.database.SQLiteQuery sqLiteQuery) {
-                            command.bindTo(sqLiteQuery);
-                            return new SQLiteCursor(sqLiteCursorDriver, s, sqLiteQuery);
-                        }
-                    }, command.getSql(), EMPTY_STRING_ARRAY, null);
-
-            while (cursor.moveToNext()) {
-                if (queryAsMapList) {
-                    Map<String, Object> map = cursorRowToMap(cursor);
-                    if (LogLevel.hasSqlLevel(database.logLevel)) {
-                        Log.d(TAG, database.getThreadLogPrefix() + SqflitePlugin.toString(map));
-                    }
-                    results.add(map);
-                } else {
-                    if (newResults == null) {
-                        rows = new ArrayList<>();
-                        newResults = new HashMap<>();
-                        newColumnCount = cursor.getColumnCount();
-                        newResults.put("columns", Arrays.asList(cursor.getColumnNames()));
-                        newResults.put("rows", rows);
-                    }
-                    rows.add(cursorRowToList(cursor, newColumnCount));
-                }
-            }
-            if (queryAsMapList) {
-                operation.success(results);
-            } else {
-                // Handle empty
-                if (newResults == null) {
-                    newResults = new HashMap<>();
-                }
-                operation.success(newResults);
-            }
-            return true;
-
-        } catch (Exception exception) {
-            handleException(exception, operation, database);
-            return false;
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
+        databaseWorkerPool.post(database, () -> database.batch(call, result));
     }
 
     //
@@ -554,13 +248,9 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
         if (database == null) {
             return;
         }
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                MethodCallOperation operation = new MethodCallOperation(call, result);
-                insert(database, operation);
-            }
-
+        databaseWorkerPool.post(database, () -> {
+            MethodCallOperation operation = new MethodCallOperation(call, result);
+            database.insert(operation);
         });
     }
 
@@ -573,55 +263,28 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
         if (database == null) {
             return;
         }
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-
-                Boolean inTransaction;
-
-                if (executeOrError(database, call, result) == null) {
-                    return;
-                }
-                result.success(null);
-            }
+        databaseWorkerPool.post(database, () -> {
+            MethodCallOperation operation = new MethodCallOperation(call, result);
+            database.execute(operation);
         });
     }
 
-    // Return true on success
-    private boolean update(Database database, final Operation operation) {
-        if (!executeOrError(database, operation)) {
-            return false;
-        }
-        // don't get last id if not expected
-        if (operation.getNoResult()) {
-            operation.success(null);
-            return true;
-        }
-        Cursor cursor = null;
-        try {
-            SQLiteDatabase db = database.getWritableDatabase();
+    private void onSetLocaleCall(final MethodCall call, final Result result) {
 
-            cursor = db.rawQuery("SELECT changes()", null);
-            if (cursor != null && cursor.getCount() > 0 && cursor.moveToFirst()) {
-                final int changed = cursor.getInt(0);
-                if (LogLevel.hasSqlLevel(database.logLevel)) {
-                    Log.d(TAG, database.getThreadLogPrefix() + "changed " + changed);
-                }
-                operation.success(changed);
-                return true;
-            } else {
-                Log.e(TAG, database.getThreadLogPrefix() + "fail to read changes for Update/Delete");
-            }
-            operation.success(null);
-            return true;
-        } catch (Exception e) {
-            handleException(e, operation, database);
-            return false;
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
+        final Database database = getDatabaseOrError(call, result);
+        if (database == null) {
+            return;
         }
+        databaseWorkerPool.post(database, () -> {
+            String localeString = call.argument(PARAM_LOCALE);
+            try {
+                database.sqliteDatabase.setLocale(Utils.localeForLanguateTag(localeString));
+                result.success(null);
+            } catch (Exception exception) {
+                result.error(Constant.SQLITE_ERROR, "Error calling setLocale: " + exception.getMessage(), null);
+            }
+
+        });
     }
 
     //
@@ -633,40 +296,10 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
         if (database == null) {
             return;
         }
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                MethodCallOperation operation = new MethodCallOperation(call, result);
-                update(database, operation);
-            }
+        databaseWorkerPool.post(database, () -> {
+            MethodCallOperation operation = new MethodCallOperation(call, result);
+            database.update(operation);
         });
-    }
-
-    private void handleException(Exception exception, Operation operation, Database database) {
-        if (exception instanceof SQLiteCantOpenDatabaseException) {
-            operation.error(Constant.SQLITE_ERROR, Constant.ERROR_OPEN_FAILED + " " + database.path, null);
-            return;
-        } else if (exception instanceof SQLException) {
-            operation.error(Constant.SQLITE_ERROR, exception.getMessage(), SqlErrorInfo.getMap(operation));
-            return;
-        }
-        operation.error(Constant.SQLITE_ERROR, exception.getMessage(), SqlErrorInfo.getMap(operation));
-    }
-
-    // {
-    // 'id': xxx
-    // 'recovered': true // if recovered only for single instance
-    // }
-    static Map makeOpenResult(int databaseId, boolean recovered, boolean recoveredInTransaction) {
-        Map<String, Object> result = new HashMap<>();
-        result.put(PARAM_ID, databaseId);
-        if (recovered) {
-            result.put(PARAM_RECOVERED, true);
-        }
-        if (recoveredInTransaction) {
-            result.put(PARAM_RECOVERED_IN_TRANSACTION, true);
-        }
-        return result;
     }
 
     private void onDebugCall(final MethodCall call, final Result result) {
@@ -750,9 +383,9 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
                             }
                         } else {
                             if (LogLevel.hasVerboseLevel(logLevel)) {
-                                Log.d(Constant.TAG, database.getThreadLogPrefix() + "re-opened single instance " + (database.inTransaction ? "(in transaction) " : "") + databaseId + " " + path);
+                                Log.d(Constant.TAG, database.getThreadLogPrefix() + "re-opened single instance " + (database.isInTransaction() ? "(in transaction) " : "") + databaseId + " " + path);
                             }
-                            result.success(makeOpenResult(databaseId, true, database.inTransaction));
+                            result.success(makeOpenResult(databaseId, true, database.isInTransaction()));
                             return;
                         }
                     }
@@ -763,75 +396,73 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
         // Generate new id
         int newDatabaseId;
         synchronized (databaseMapLocker) {
-            newDatabaseId = ++SqflitePlugin.this.databaseId;
+            newDatabaseId = ++databaseId;
         }
         final int databaseId = newDatabaseId;
 
         final Database database = new Database(context, path, databaseId, singleInstance, logLevel);
 
         synchronized (databaseMapLocker) {
-            // Create handler if necessary
-            if (handler == null) {
-                handlerThread = new HandlerThread("Sqflite", SqflitePlugin.THREAD_PRIORITY);
-                handlerThread.start();
-                handler = new Handler(handlerThread.getLooper());
+            // Create worker pool if necessary
+            if (databaseWorkerPool == null) {
+                databaseWorkerPool = DatabaseWorkerPool.create(
+                        "Sqflite", THREAD_COUNT, SqflitePlugin.THREAD_PRIORITY);
+                databaseWorkerPool.start();
                 if (LogLevel.hasSqlLevel(database.logLevel)) {
-                    Log.d(TAG, database.getThreadLogPrefix() + "starting thread" + handlerThread + " priority " + SqflitePlugin.THREAD_PRIORITY);
+                    Log.d(TAG, database.getThreadLogPrefix() + "starting worker pool with priority " + SqflitePlugin.THREAD_PRIORITY);
                 }
             }
+            database.databaseWorkerPool = databaseWorkerPool;
             if (LogLevel.hasSqlLevel(database.logLevel)) {
                 Log.d(TAG, database.getThreadLogPrefix() + "opened " + databaseId + " " + path);
             }
 
 
             // Open in background thread
-            handler.post(
-                    new Runnable() {
-                        @Override
-                        public void run() {
+            databaseWorkerPool.post(
+                    database,
+                    () -> {
 
-                            synchronized (openCloseLocker) {
+                        synchronized (openCloseLocker) {
 
-                                if (!inMemory) {
-                                    File file = new File(path);
-                                    File directory = new File(file.getParent());
-                                    if (!directory.exists()) {
-                                        if (!directory.mkdirs()) {
-                                            if (!directory.exists()) {
-                                                result.error(Constant.SQLITE_ERROR, Constant.ERROR_OPEN_FAILED + " " + path, null);
-                                                return;
-                                            }
+                            if (!inMemory) {
+                                File file = new File(path);
+                                File directory = new File(file.getParent());
+                                if (!directory.exists()) {
+                                    if (!directory.mkdirs()) {
+                                        if (!directory.exists()) {
+                                            result.error(Constant.SQLITE_ERROR, Constant.ERROR_OPEN_FAILED + " " + path, null);
+                                            return;
                                         }
                                     }
                                 }
-
-                                // force opening
-                                try {
-                                    if (Boolean.TRUE.equals(readOnly)) {
-                                        database.openReadOnly();
-                                    } else {
-                                        database.open();
-                                    }
-                                } catch (Exception e) {
-                                    MethodCallOperation operation = new MethodCallOperation(call, result);
-                                    handleException(e, operation, database);
-                                    return;
-                                }
-
-                                synchronized (databaseMapLocker) {
-                                    if (singleInstance) {
-                                        _singleInstancesByPath.put(path, databaseId);
-                                    }
-                                    databaseMap.put(databaseId, database);
-                                }
-                                if (LogLevel.hasSqlLevel(database.logLevel)) {
-                                    Log.d(TAG, database.getThreadLogPrefix() + "opened " + databaseId + " " + path);
-                                }
                             }
 
-                            result.success(makeOpenResult(databaseId, false, false));
+                            // force opening
+                            try {
+                                if (Boolean.TRUE.equals(readOnly)) {
+                                    database.openReadOnly();
+                                } else {
+                                    database.open();
+                                }
+                            } catch (Exception e) {
+                                MethodCallOperation operation = new MethodCallOperation(call, result);
+                                database.handleException(e, operation);
+                                return;
+                            }
+
+                            synchronized (databaseMapLocker) {
+                                if (singleInstance) {
+                                    _singleInstancesByPath.put(path, databaseId);
+                                }
+                                databaseMap.put(databaseId, database);
+                            }
+                            if (LogLevel.hasSqlLevel(database.logLevel)) {
+                                Log.d(TAG, database.getThreadLogPrefix() + "opened " + databaseId + " " + path);
+                            }
                         }
 
+                        result.success(makeOpenResult(databaseId, false, false));
                     });
         }
 
@@ -862,7 +493,7 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
             }
         }
 
-        handler.post(new Runnable() {
+        databaseWorkerPool.post(database, new Runnable() {
             @Override
             public void run() {
                 synchronized (openCloseLocker) {
@@ -892,7 +523,7 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
                 if (database != null) {
                     if (database.sqliteDatabase.isOpen()) {
                         if (LogLevel.hasVerboseLevel(logLevel)) {
-                            Log.d(Constant.TAG, database.getThreadLogPrefix() + "found single instance " + (database.inTransaction ? "(in transaction) " : "") + databaseId + " " + path);
+                            Log.d(Constant.TAG, database.getThreadLogPrefix() + "found single instance " + (database.isInTransaction() ? "(in transaction) " : "") + databaseId + " " + path);
                         }
                         foundOpenedDatabase = database;
 
@@ -926,9 +557,9 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
             }
         };
 
-        // handler might not exist yet
-        if (handler != null) {
-            handler.post(deleteRunnable);
+        // worker pool might not exist yet
+        if (databaseWorkerPool != null) {
+            databaseWorkerPool.post(openedDatabase, deleteRunnable);
         } else {
             // Otherwise run in the UI thread
             deleteRunnable.run();
@@ -936,10 +567,16 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
 
     }
 
+    private void onDatabaseExistsCall(final MethodCall call, final Result result) {
+        final String path = call.argument(PARAM_PATH);
+        boolean exists = Database.existsDatabase(path);
+        result.success(exists);
+    }
+
     private void closeDatabase(Database database) {
         try {
             if (LogLevel.hasSqlLevel(database.logLevel)) {
-                Log.d(TAG, database.getThreadLogPrefix() + "closing database " + handlerThread);
+                Log.d(TAG, database.getThreadLogPrefix() + "closing database ");
             }
             database.close();
         } catch (Exception e) {
@@ -947,13 +584,12 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
         }
         synchronized (databaseMapLocker) {
 
-            if (databaseMap.isEmpty() && handler != null) {
+            if (databaseMap.isEmpty() && databaseWorkerPool != null) {
                 if (LogLevel.hasSqlLevel(database.logLevel)) {
-                    Log.d(TAG, database.getThreadLogPrefix() + "stopping thread" + handlerThread);
+                    Log.d(TAG, database.getThreadLogPrefix() + "stopping thread");
                 }
-                handlerThread.quit();
-                handlerThread = null;
-                handler = null;
+                databaseWorkerPool.quit();
+                databaseWorkerPool = null;
             }
         }
     }
@@ -1010,9 +646,21 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
                 onDebugCall(call, result);
                 break;
             }
+            case METHOD_QUERY_CURSOR_NEXT: {
+                onQueryCursorNextCall(call, result);
+                break;
+            }
+            case METHOD_DATABASE_EXISTS: {
+                onDatabaseExistsCall(call, result);
+                break;
+            }
             // Obsolete
             case METHOD_DEBUG_MODE: {
                 onDebugModeCall(call, result);
+                break;
+            }
+            case METHOD_ANDROID_SET_LOCALE: {
+                onSetLocaleCall(call, result);
                 break;
             }
             default:
@@ -1022,13 +670,18 @@ public class SqflitePlugin implements FlutterPlugin, MethodCallHandler {
     }
 
     void onOptionsCall(final MethodCall call, final Result result) {
-        Object paramAsList = call.argument(Constant.PARAM_QUERY_AS_MAP_LIST);
-        if (paramAsList != null) {
-            QUERY_AS_MAP_LIST = Boolean.TRUE.equals(paramAsList);
-        }
         Object threadPriority = call.argument(Constant.PARAM_THREAD_PRIORITY);
         if (threadPriority != null) {
             THREAD_PRIORITY = (Integer) threadPriority;
+        }
+        Object threadCount = call.argument(Constant.PARAM_THREAD_COUNT);
+        if (threadCount != null && !threadCount.equals(THREAD_COUNT)) {
+            THREAD_COUNT = (Integer) threadCount;
+            // Reset databaseWorkerPool when THREAD_COUNT change.
+            if (databaseWorkerPool != null) {
+                databaseWorkerPool.quit();
+                databaseWorkerPool = null;
+            }
         }
         Integer logLevel = LogLevel.getLogLevel(call);
         if (logLevel != null) {

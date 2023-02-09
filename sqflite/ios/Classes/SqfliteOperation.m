@@ -8,6 +8,7 @@
 #import <Foundation/Foundation.h>
 #import "SqfliteOperation.h"
 #import "SqflitePlugin.h"
+#import "SqfliteFmdbImport.m"
 
 // Abstract
 @implementation SqfliteOperation
@@ -21,9 +22,7 @@
 - (NSArray*)getSqlArguments {
     return nil;
 }
-- (NSNumber*)getInTransactionArgument {
-    return nil;
-}
+
 - (bool)getNoResult {
     return false;
 }
@@ -33,6 +32,34 @@
 - (void)success:(NSObject*)results {}
 
 - (void)error:(NSObject*)error {}
+
+// To override
+- (id)getArgument:(NSString*)key {
+    return nil;
+}
+
+// To override
+- (bool)hasArgument:(NSString*)key {
+    return false;
+}
+
+// Either nil or NSNumber
+- (NSNumber*)getTransactionId {
+    // It might be NSNull (for begin transaction)
+    id rawId = [self getArgument:SqfliteParamTransactionId];
+    if ([rawId isKindOfClass:[NSNumber class]]) {
+        return rawId;
+    }
+    return nil;
+}
+
+- (NSNumber*)getInTransactionChange {
+    return [self getArgument:SqfliteParamInTransactionChange];
+}
+
+- (bool)hasNullTransactionId {
+    return [self getArgument:SqfliteParamTransactionId] == [NSNull null];
+}
 
 @end
 
@@ -51,10 +78,6 @@
 - (NSArray*)getSqlArguments {
     NSArray* arguments = [dictionary objectForKey:SqfliteParamSqlArguments];
     return [SqflitePlugin toSqlArguments:arguments];
-}
-
-- (NSNumber*)getInTransactionArgument {
-    return [dictionary objectForKey:SqfliteParamInTransaction];
 }
 
 - (bool)getNoResult {
@@ -102,6 +125,14 @@
     result(error);
 }
 
+- (id)getArgument:(NSString*)key {
+    return [dictionary objectForKey:key];
+}
+
+- (bool)hasArgument:(NSString*)key {
+    return [self getArgument:key] != nil;
+}
+
 @end
 
 @implementation SqfliteMethodCallOperation
@@ -139,14 +170,24 @@
     return [SqflitePlugin toSqlArguments:arguments];
 }
 
-- (NSNumber*)getInTransactionArgument {
-    return flutterMethodCall.arguments[SqfliteParamInTransaction];
-}
+
 
 - (void)success:(NSObject*)results {
     flutterResult(results);
 }
+
 - (void)error:(NSObject*)error {
     flutterResult(error);
 }
+
+- (id)getArgument:(NSString*)key {
+    return flutterMethodCall.arguments[key];
+}
+
+@end
+
+@implementation SqfliteQueuedOperation
+
+@synthesize operation, handler;
+
 @end

@@ -3,6 +3,8 @@ import 'package:sqflite_common/src/batch.dart';
 import 'package:sqflite_common/src/factory.dart';
 import 'package:sqflite_common/src/transaction.dart';
 
+import 'cursor.dart';
+
 /// Base database executor.
 abstract class SqfliteDatabaseExecutor implements DatabaseExecutor {
   /// Executor transaction if any.
@@ -84,8 +86,9 @@ abstract class SqfliteDatabase extends SqfliteDatabaseExecutor
       {bool? noResult, bool? continueOnError});
 
   /// Execute a command.
-  Future<T> txnExecute<T>(SqfliteTransaction? txn, String sql,
-      [List<Object?>? arguments]);
+  Future<T> txnExecute<T>(
+      SqfliteTransaction? txn, String sql, List<Object?>? arguments,
+      {bool? beginTransaction});
 
   /// Execute a raw INSERT command.
   Future<int> txnRawInsert(
@@ -95,12 +98,35 @@ abstract class SqfliteDatabase extends SqfliteDatabaseExecutor
   Future<List<Map<String, Object?>>> txnRawQuery(
       SqfliteTransaction? txn, String sql, List<Object?>? arguments);
 
-  /// Execute a raw UPDATE/DELETE command.
+  /// Execute a raw SELECT command by page.
+  Future<SqfliteQueryCursor> txnRawQueryCursor(SqfliteTransaction? txn,
+      String sql, List<Object?>? arguments, int pageSize);
+
+  /// Cursor move next.
+  Future<bool> txnQueryCursorMoveNext(
+      SqfliteTransaction? txn, SqfliteQueryCursor cursor);
+
+  /// Cursor current row.
+  Map<String, Object?> txnQueryCursorGetCurrent(
+      SqfliteTransaction? txn, SqfliteQueryCursor cursor);
+
+  /// Close the cursor.
+  Future<void> txnQueryCursorClose(
+      SqfliteTransaction? txn, SqfliteQueryCursor cursor);
+
+  /// Execute a raw UPDATE command.
   Future<int> txnRawUpdate(
+      SqfliteTransaction? txn, String sql, List<Object?>? arguments);
+
+  /// Execute a raw DELETE command.
+  Future<int> txnRawDelete(
       SqfliteTransaction? txn, String sql, List<Object?>? arguments);
 
   /// Check if a database is not closed.
   ///
   /// Throw an exception if closed.
   void checkNotClosed();
+
+  /// Allow database overriding.
+  Future<T> invokeMethod<T>(String method, [Object? arguments]);
 }

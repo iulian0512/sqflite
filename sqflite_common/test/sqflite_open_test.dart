@@ -32,32 +32,34 @@ void main() {
         ],
         [
           'query',
-          {'sql': 'PRAGMA user_version', 'arguments': null, 'id': 1},
+          {'sql': 'PRAGMA user_version', 'id': 1},
+          // ignore: inference_failure_on_collection_literal
           {}
         ],
         [
           'execute',
           {
             'sql': 'BEGIN EXCLUSIVE',
-            'arguments': null,
             'id': 1,
-            'inTransaction': true
+            'inTransaction': true,
+            'transactionId': null
           },
           null
         ],
         [
           'query',
-          {'sql': 'PRAGMA user_version', 'arguments': null, 'id': 1},
+          {'sql': 'PRAGMA user_version', 'id': 1},
+          // ignore: inference_failure_on_collection_literal
           {}
         ],
         [
           'execute',
-          {'sql': 'PRAGMA user_version = 1', 'arguments': null, 'id': 1},
+          {'sql': 'PRAGMA user_version = 1', 'id': 1},
           null
         ],
         [
           'execute',
-          {'sql': 'COMMIT', 'arguments': null, 'id': 1, 'inTransaction': false},
+          {'sql': 'COMMIT', 'id': 1, 'inTransaction': false},
           null
         ],
         [
