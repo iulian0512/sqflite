@@ -18,3 +18,20 @@ Supports iOS, Android and MacOS.
 * [Documentation](https://github.com/tekartik/sqflite/blob/master/sqflite/README.md)
 * [API reference](https://pub.dartlang.org/documentation/sqflite/latest/sqflite/sqflite-library.html)
 * [How to](https://github.com/tekartik/sqflite/blob/master/sqflite/doc/how_to.md) guide
+
+
+
+
+## Setup for IOS
+* Include the override for FMBD in your runner podfile, example
+```
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+  pod 'FMDB' , :git => 'https://github.com/iulian0512/fmdb.git'. # here it is 
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+end
+
+```
