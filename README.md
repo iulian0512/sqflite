@@ -35,3 +35,18 @@ target 'Runner' do
 end
 
 ```
+* Set build architectures
+```
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+  end
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings["VALID_ARCHS[sdk=iphonesimulator*]"] = "x86_64"
+      config.build_settings["VALID_ARCHS[sdk=iphoneos*]"] = "arm64"
+    end
+  end
+end
+
+```
