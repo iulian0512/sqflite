@@ -20,7 +20,7 @@ Supports iOS, Android and MacOS.
 
 
 
-## Setup for IOS
+## SPATIALITE Setup for IOS
 * Include the override for FMBD in your runner podfile, example
 ```
 
