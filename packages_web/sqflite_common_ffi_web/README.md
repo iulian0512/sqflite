@@ -16,8 +16,8 @@ Add the dependency:
 
 ### Setup binaries
 
-Implementation requires sqlite3.wasm binaries into your web folder
-as well as a sqflite specific shared worker.
+Implementation requires [sqlite3.wasm binaries](https://github.com/simolus3/sqlite3.dart/releases)
+into your web folder as well as a sqflite specific shared worker.
 
 You can install binaries using the command:
 
@@ -31,6 +31,16 @@ It should create the following files in your web folder:
 
 that you can put in source control or not (personally I don't)
 
+Note: when sqlite3 and its wasm binary are updated, you may need to run the command again using the force option:
+```bash
+$ dart run sqflite_common_ffi_web:setup --force
+```
+
+However since it depends on `sqflite3` version and its associated binary, if it gets updated 
+and the tool still download the old version (sorry it is hardcoded) you might have to manually
+download a compatible binary from [sqlite3.wasm binaries](https://github.com/simolus3/sqlite3.dart/releases)
+I don't have a better option yet, sorry.
+
 ### Use the proper factory.
 
 ```dart
@@ -41,6 +51,25 @@ var sqliteVersion = (await db.rawQuery('select sqlite_version()')).first.values.
 print(sqliteVersion); // should print 3.39.3
 ```
 
+### Add web support to existing sqflite application
+
+If you have any existing iOS/Android application, one solution is to change the default database
+factory:
+
+```dart
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+import 'package:sqflite/sqflite.dart';
+
+var path = '/my/db/path';
+if (kIsWeb) {
+  // Change default factory on the web
+  databaseFactory = databaseFactoryFfiWeb;
+  path = 'my_web_web.db';
+}
+
+// open the database
+var db = openDatabase(path);
+```
 ## Limitations
 
 ### No shared worker available

@@ -4,6 +4,8 @@ import 'package:sqflite/src/factory_impl.dart';
 import 'package:sqflite/src/mixin/factory.dart';
 import 'package:sqflite/src/sqflite_impl.dart';
 
+T? _ambiguate<T>(T? value) => value;
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -13,7 +15,9 @@ void main() {
     final log = <MethodCall>[];
     String? response;
 
-    channel.setMockMethodCallHandler((MethodCall methodCall) async {
+    _ambiguate(TestDefaultBinaryMessengerBinding.instance)!
+        .defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
       log.add(methodCall);
       return response;
     });
@@ -23,7 +27,7 @@ void main() {
     });
 
     test('databaseFactory', () async {
-      expect(databaseFactory is SqfliteInvokeHandler, isTrue);
+      expect(databaseFactorySqflitePlugin is SqfliteInvokeHandler, isTrue);
     });
 
     test('supportsConcurrency', () async {
@@ -31,12 +35,8 @@ void main() {
     });
 
     test('deprecated', () {
-      // ignore: deprecated_member_use_from_same_package
-      sqlfliteDatabaseFactory = null;
       sqfliteDatabaseFactory = null;
       for (var element in [
-        // ignore: unnecessary_statements, deprecated_member_use_from_same_package
-        sqlfliteDatabaseFactory,
         // ignore: unnecessary_statements
         sqfliteDatabaseFactory
       ]) {

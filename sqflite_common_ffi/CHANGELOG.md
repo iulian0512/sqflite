@@ -1,3 +1,19 @@
+## 2.2.5
+
+* Export global sqflite API
+
+## 2.2.4
+
+* Dart 3 support
+
+## 2.2.3
+
+* Depends on sqlite3 >= 1.11.0
+
+## 2.2.2
+
+* add minimum support for SQLite uri (https://www.sqlite.org/uri.html)
+
 ## 2.2.1+1
 
 * strict-casts and sdk 2.18 support

@@ -23,14 +23,17 @@ class _SqfliteFfiHandlerIo extends SqfliteFfiHandler {
     if (path == inMemoryDatabasePath) {
       ffiDb = ffi.sqlite3.openInMemory();
     } else {
+      var isUri = path.startsWith('file:');
+
+      var file = isUri ? File(Uri.parse(path).path) : File(path);
       if (readOnly) {
         // ignore: avoid_slow_async_io
-        if (!(await File(path).exists())) {
+        if (!isUri && !(await file.exists())) {
           throw StateError('file $path not found');
         }
       } else {
         // ignore: avoid_slow_async_io
-        if (!(await File(path).exists())) {
+        if (!(await file.exists())) {
           // Make sure its parent exists
           try {
             await Directory(dirname(path)).create(recursive: true);
@@ -39,7 +42,7 @@ class _SqfliteFfiHandlerIo extends SqfliteFfiHandler {
       }
       final mode =
           readOnly ? ffi.OpenMode.readOnly : ffi.OpenMode.readWriteCreate;
-      ffiDb = ffi.sqlite3.open(path, mode: mode);
+      ffiDb = ffi.sqlite3.open(path, mode: mode, uri: isUri);
 
       // Handle hot-restart for single instance
       // The dart code is killed but the native code remains
@@ -51,10 +54,20 @@ class _SqfliteFfiHandlerIo extends SqfliteFfiHandler {
     return ffiDb;
   }
 
-  /// Delete the database file.
+  /// Safe delete a files
+  Future<void> _safeDeleteFile(String path) async {
+    try {
+      await File(path).delete(recursive: true);
+    } catch (_) {}
+  }
+
+  /// Delete the database file including its journal file and other auxiliary files
   @override
   Future<void> deleteDatabasePlatform(String path) async {
-    await File(path).delete();
+    await _safeDeleteFile(path);
+    await _safeDeleteFile('$path-wal');
+    await _safeDeleteFile('$path-shm');
+    await _safeDeleteFile('$path-journal');
   }
 
   /// Check if database file exists

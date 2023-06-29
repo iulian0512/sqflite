@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite/sqflite.dart';
 
+T? _ambiguate<T>(T? value) => value;
 const channel = MethodChannel('com.tekartik.sqflite');
 
 class MockMethodCall {
@@ -36,7 +37,9 @@ class MockScenario {
 MockScenario startScenario(List<List> data) {
   final scenario = MockScenario(data);
 
-  channel.setMockMethodCallHandler((MethodCall methodCall) async {
+  _ambiguate(TestDefaultBinaryMessengerBinding.instance)!
+      .defaultBinaryMessenger
+      .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
     final index = scenario.index++;
     // devPrint('$index ${scenario.methodsCalls[index]}');
     final item = scenario.methodsCalls[index];
@@ -53,13 +56,14 @@ MockScenario startScenario(List<List> data) {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  databaseFactory = databaseFactorySqflitePlugin;
 
   group('sqflite', () {
-    test('open', () async {
+    test('open single instance false', () async {
       final scenario = startScenario([
         [
           'openDatabase',
-          {'path': ':memory:', 'singleInstance': true},
+          {'path': ':memory:', 'singleInstance': false},
           1
         ],
         [
@@ -76,7 +80,7 @@ void main() {
       final scenario = startScenario([
         [
           'openDatabase',
-          {'path': ':memory:', 'singleInstance': true},
+          {'path': ':memory:', 'singleInstance': false},
           1
         ],
         [

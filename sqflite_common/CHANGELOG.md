@@ -1,3 +1,16 @@
+## 2.4.5+1
+
+* Add global API from sqflite (openDatabase, deleteDatabase, databaseFactory...) from sqflite
+* Fixes SqlBuilder for query with offset without limit.
+
+## 2.4.4
+
+* Dart 3 support
+
+## 2.4.3
+
+* add minimum support for SQLite uri (https://www.sqlite.org/uri.html)
+
 ## 2.4.2+2
 
 * add experimental logger support.

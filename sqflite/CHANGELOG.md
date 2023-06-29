@@ -1,4 +1,19 @@
-## 2.2.5-0
+## 2.2.8+4
+
+* Android: Adds a namespace for compatibility with AGP 8.0.
+* Android: Use compile SDK 33
+* Export global sqflite API
+* iOS set minimum deployment target to 11.0
+
+## 2.2.7
+
+* Dart 3 support
+
+## 2.2.6
+
+* uri support for supported implementations.
+
+## 2.2.5
 
 * Fix concurrency issue in database worker pool (chriscui@google.com)
 * add android `setLocale` API call support.
@@ -37,7 +52,7 @@
 
 ## 2.0.4-dev.1
 
-* Android: Allow turing on WAL in the manifest.
+* Android: Allow turning on WAL in the manifest.
 
 ## 2.0.3+1
 
