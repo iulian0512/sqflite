@@ -345,12 +345,11 @@ class OpenTestPage extends TestPage {
         await createDirectory(path);
       } catch (_) {}
 
-      // Copy from asset
-      final data = await rootBundle.load(join('assets', 'example.db'));
-      final List<int> bytes =
+// Copy from asset to a database file.
+      final data = await rootBundle.load(url.join('assets', 'example.db'));
+      final bytes =
           data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-      // Write and flush the bytes written
-      await writeFileAsBytes(path, bytes, flush: true);
+      await databaseFactory.writeDatabaseBytes(path, bytes);
 
       // open the database
       final db = await openDatabase(path);
@@ -643,7 +642,7 @@ class OpenTestPage extends TestPage {
           print('Creating new copy from asset');
 
           // Copy from asset
-          final data = await rootBundle.load(join('assets', 'example.db'));
+          final data = await rootBundle.load(url.join('assets', 'example.db'));
           final bytes =
               data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
           await writeFileAsBytes(path, bytes);
@@ -928,6 +927,38 @@ class OpenTestPage extends TestPage {
         expect(
             (await readFileAsBytes(path)).length, greaterThan(minExpectedSize));
       }
+    });
+    test('Read/write bytes', () async {
+      var path = await initDeleteDb('database_read_bytes.db');
+      var writtenPath = await initDeleteDb('database_written_bytes.db');
+      var db = await factory.openDatabase(path,
+          options: OpenDatabaseOptions(
+              version: 1,
+              onCreate: (db, version) async {
+                await db.execute(
+                    'CREATE TABLE Test(id INTEGER PRIMARY KEY, value TEXT)');
+              }));
+      var textValue = 'value_to_read';
+      await db.insert('Test', {'id': 1, 'value': textValue});
+      expect(await db.query('Test'), [
+        {'id': 1, 'value': textValue}
+      ]);
+      await db.close();
+      var bytes = await factory.readDatabaseBytes(path);
+      //expect(bytes.length, 8192);
+      expect(bytes.sublist(0, 4), [
+        83,
+        81,
+        76,
+        105,
+      ]);
+
+      await factory.writeDatabaseBytes(writtenPath, bytes);
+      db = await factory.openDatabase(writtenPath);
+      expect(await db.query('Test'), [
+        {'id': 1, 'value': textValue}
+      ]);
+      await db.close();
     });
   }
 }
