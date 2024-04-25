@@ -1,3 +1,22 @@
+## 0.4.3+1
+
+* Remove dependency on `dart:html`. Requires rebuilding the worker file.
+
+## 0.4.2+3
+
+* Setup for sqlite3 2.3.0
+
+## 0.4.2+2
+
+* Use local webdev dependency during setup.
+* Setup for sqlite3 2.2.0
+* Remove `io` dependency
+* requires sdk 3.2.0
+
+## 0.4.1
+
+* Use `dev_build` dependency instead of `dev_test`
+
 ## 0.4.0
 
 * dart 3 only

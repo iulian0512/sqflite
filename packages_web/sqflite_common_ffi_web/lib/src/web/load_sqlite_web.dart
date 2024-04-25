@@ -1,19 +1,20 @@
-import 'dart:html';
+import 'dart:js_interop';
 
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:sqflite_common_ffi_web/src/constant.dart';
-import 'package:sqflite_common_ffi_web/src/debug/debug.dart';
-import 'package:sqflite_common_ffi_web/src/sqflite_ffi_impl_web.dart';
 import 'package:sqlite3/wasm.dart';
+import 'package:web/web.dart' as web;
+
+import 'worker_message_utils.dart';
 
 bool get _debug => sqliteFfiWebDebugWebWorker;
 
 var _swc = workerClientLogPrefix; // Log prefix
+var _log = print;
 
 /// Load base file system
 Future<SqfliteFfiWebContext> sqfliteFfiWebLoadSqlite3FileSystem(
     SqfliteFfiWebOptions options) async {
-  // devPrint('options');
   var indexedDbName = options.indexedDbName ?? 'sqflite_databases';
   final fs = await IndexedDbFileSystem.open(dbName: indexedDbName);
   return SqfliteFfiWebContextImpl(options: options, fs: fs);
@@ -32,7 +33,7 @@ Future<SqfliteFfiWebContext> sqfliteFfiWebLoadSqlite3Wasm(
   context ??= await sqfliteFfiWebLoadSqlite3FileSystem(options);
   var uri = options.sqlite3WasmUri ?? _defaultSqlite3WasmUri;
   if (_debug) {
-    print('Loading sqlite3.wasm from $uri');
+    _log('Loading sqlite3.wasm from $uri');
   }
 
   var webContext = (context as SqfliteFfiWebContextImpl);
@@ -50,33 +51,33 @@ Future<SqfliteFfiWebContext> sqfliteFfiWebStartSharedWorker(
   try {
     var name = 'sqflite_common_ffi_web';
     var sharedWorkerUri = options.sharedWorkerUri ?? defaultSharedWorkerUri;
-    SharedWorker? sharedWorker;
-    Worker? worker;
+    web.SharedWorker? sharedWorker;
+    web.Worker? worker;
     try {
       if (!(options.forceAsBasicWorker ?? false)) {
         if (_debug) {
-          print(
+          _log(
               '$_swc registering shared worker $sharedWorkerUri (name: $name)');
         }
-        sharedWorker = SharedWorker(sharedWorkerUri.toString(), name);
+        sharedWorker = web.SharedWorker(sharedWorkerUri.toString(), name.toJS);
       }
     } catch (e) {
       if (_debug) {
-        print('SharedWorker creation failed $e');
+        _log('SharedWorker creation failed $e');
       }
     }
     if (sharedWorker == null) {
       if (_debug) {
-        print('$_swc registering worker $sharedWorkerUri');
+        _log('$_swc registering worker $sharedWorkerUri');
       }
-      worker = Worker(sharedWorkerUri.toString());
+      worker = web.Worker(sharedWorkerUri.toString());
     }
     return SqfliteFfiWebContextImpl(
         options: options, sharedWorker: sharedWorker, worker: worker);
   } catch (e, st) {
     if (_debug) {
-      print('sqfliteFfiWebLoadSqlite3Wasm failed: $e');
-      print(st);
+      _log('sqfliteFfiWebLoadSqlite3Wasm failed: $e');
+      _log(st);
     }
     rethrow;
   }
@@ -91,22 +92,21 @@ class SqfliteFfiWebContextImpl extends SqfliteFfiWebContext {
   final WasmSqlite3? wasmSqlite3;
 
   /// Optional Client shared worker
-  final SharedWorker? sharedWorker;
+  final web.SharedWorker? sharedWorker;
 
   /// Optional Client basic worker (if sharedWorker not working)
-  final Worker? worker;
+  final web.Worker? worker;
 
   /// Raw message sender to either shared worker or basic worker
   late final RawMessageSender rawMessageSender;
 
   /// Web implementation with shared worker
   SqfliteFfiWebContextImpl(
-      {required SqfliteFfiWebOptions options,
+      {required super.options,
       this.fs,
       this.wasmSqlite3,
       this.sharedWorker,
-      this.worker})
-      : super(options: options) {
+      this.worker}) {
     if (sharedWorker != null) {
       rawMessageSender = RawMessageSenderSharedWorker(sharedWorker!);
     }
@@ -124,10 +124,10 @@ extension SqfliteFfiWebContextExt on SqfliteFfiWebContext {
   VirtualFileSystem? get fs => _context.fs;
 
   /// Shared worker if any
-  SharedWorker? get sharedWorker => _context.sharedWorker;
+  web.SharedWorker? get sharedWorker => _context.sharedWorker;
 
   /// Web worker if any
-  SharedWorker? get webWorker => _context.sharedWorker;
+  web.SharedWorker? get webWorker => _context.sharedWorker;
 
   /// Loaded wasm if any
   WasmSqlite3? get wasmSqlite3 => _context.wasmSqlite3;

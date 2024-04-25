@@ -11,6 +11,9 @@ include: package:lints/recommended.yaml
 # https://github.com/flutter/flutter/blob/master/analysis_options.yaml
 
 analyzer:
+  # Somehow this is needed when running dart analyze
+  exclude:
+    - build/**
   language:
     strict-casts: true
     strict-inference: true
@@ -18,8 +21,6 @@ analyzer:
   errors:
     # treat missing required parameters as a warning (not a hint)
     missing_required_param: warning
-    # treat missing returns as a warning (not a hint)
-    missing_return: warning
     # allow having TODOs in the code
     todo: ignore
     # Ignore errors like
@@ -78,7 +79,6 @@ linter:
     - prefer_initializing_formals
     - prefer_void_to_null
     #
-    - always_require_non_null_named_parameters
     - annotate_overrides
     - avoid_init_to_null
     - avoid_null_checks_in_equality_operators

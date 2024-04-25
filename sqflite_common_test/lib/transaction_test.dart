@@ -402,5 +402,99 @@ void run(SqfliteTestContext context) {
         await db.close();
       }
     });
+    test('simple readTransaction', () async {
+      var path = await context.initDeleteDb('simple_read_transaction.db');
+      var db = await factory.openDatabase(path);
+      await db.execute(
+          'CREATE TABLE Test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)');
+      await db.insert('Test', {'name': 'test'});
+
+      var result = await db.readTransaction((txn) async {
+        return await txn.query('Test');
+      });
+
+      expect(result, [
+        {'id': 1, 'name': 'test'}
+      ]);
+    });
+    test('write in readTransaction', () async {
+      var path = await context.initDeleteDb('write_in_read_transaction.db');
+      var db = await factory.openDatabase(path);
+      try {
+        await db.execute(
+            'CREATE TABLE Test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)');
+        try {
+          var id = await db.readTransaction((txn) async {
+            return await txn.insert('Test', {'name': 'test'});
+          });
+          expect(id, 1);
+        } on DatabaseException catch (_) {
+          // State error in sqlite_async impl.
+        }
+
+        expect(await db.query('Test'), isEmpty);
+      } finally {
+        await db.close();
+      }
+    });
+
+    test('concurrent readTransactions', () async {
+      var path = await context.initDeleteDb('concurrent_read_transaction.db');
+      var txn1Started = Completer<void>();
+      var txn2Started = Completer<void>();
+      var db = await factory.openDatabase(path);
+      try {
+        await db.execute(
+            'CREATE TABLE Test (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)');
+
+        unawaited(db.readTransaction((txn) async {
+          txn1Started.complete();
+          await txn2Started.future;
+        }));
+        await txn1Started.future;
+        await db.readTransaction((txn) async {
+          txn2Started.complete();
+        });
+      } finally {
+        await db.close();
+      }
+    }, skip: !context.supportsConcurrentRead);
+
+    test('rolled back transactions', () async {
+      var path = await context.initDeleteDb('rolled_back_transaction.db');
+
+      var db = await factory.openDatabase(path);
+      try {
+        await db
+            .execute('CREATE TABLE Test (id INTEGER PRIMARY KEY, name TEXT)');
+        try {
+          await db.transaction((txn) async {
+            await txn.insert('Test', {'id': 1},
+                conflictAlgorithm: ConflictAlgorithm.rollback);
+            try {
+              await txn.insert('Test', {'id': 1},
+                  conflictAlgorithm: ConflictAlgorithm.rollback);
+              fail('should fail 1');
+            } on DatabaseException catch (e) {
+              expect(e.isUniqueConstraintError(), true);
+            }
+            try {
+              await txn.insert('Test', {'id': 2},
+                  conflictAlgorithm: ConflictAlgorithm.rollback);
+              fail('should fail 2');
+            } on DatabaseException catch (e) {
+              /// Transaction already closed
+              expect(e.isUniqueConstraintError(), isFalse);
+            }
+          });
+        } on DatabaseException catch (e) {
+          /// Transaction already closed !
+          expect(e.isUniqueConstraintError(), isFalse);
+        }
+        expect(await db.query('Test'), isEmpty);
+      } finally {
+        await db.close();
+      }
+    });
   });
 }

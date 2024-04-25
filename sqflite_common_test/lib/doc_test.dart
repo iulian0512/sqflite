@@ -224,7 +224,7 @@ void run(SqfliteTestContext context) {
     });
 
     test('data_types', () async {
-      var path = inMemoryDatabasePath;
+      var path = await context.initDeleteDb('data_types.db');
 
       {
         /// Create tables
@@ -238,7 +238,7 @@ CREATE TABLE Product (
 )''');
         }
 
-// First version of the database
+        // First version of the database
         var db = await factory.openDatabase(path,
             options: OpenDatabaseOptions(
                 version: 1,
@@ -269,7 +269,8 @@ CREATE TABLE Product (
 )''');
         }
 
-// First version of the database
+        path = await context.initDeleteDb('data_types.db');
+        // First version of the database
         var db = await factory.openDatabase(path,
             options: OpenDatabaseOptions(
                 version: 1,

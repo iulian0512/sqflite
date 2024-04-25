@@ -1,4 +1,20 @@
-## 2.5.0
+## 2.5.4
+
+* Remove dependency on `dart:html`
+
+## 2.5.3
+
+* Export `databaseId` and `transactionId` in logger events.
+
+## 2.5.2-1
+
+* Start support for rolled back transaction by an inner statement.
+
+## 2.5.1-2
+
+* Add `readTransaction` support to `Database` to allow concurrent read-only transactions (sqlite_async only)
+ 
+## 2.5.0+2
 
 * Dart 3 only
 * Add `readDatabaseBytes` and `writeDatabaseBytes` factory methods.

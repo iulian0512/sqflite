@@ -21,8 +21,6 @@ analyzer:
   errors:
     # treat missing required parameters as a warning (not a hint)
     missing_required_param: warning
-    # treat missing returns as a warning (not a hint)
-    missing_return: warning
     # allow having TODOs in the code
     todo: ignore
     # Ignore errors like
@@ -34,6 +32,7 @@ linter:
     - always_declare_return_types
     - avoid_dynamic_calls
     - avoid_empty_else
+    - avoid_print
     - avoid_relative_lib_imports
     - avoid_shadowing_type_parameters
     - avoid_slow_async_io
@@ -81,7 +80,6 @@ linter:
     - prefer_initializing_formals
     - prefer_void_to_null
     #
-    - always_require_non_null_named_parameters
     - annotate_overrides
     - avoid_init_to_null
     - avoid_null_checks_in_equality_operators

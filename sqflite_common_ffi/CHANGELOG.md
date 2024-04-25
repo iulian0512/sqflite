@@ -1,5 +1,20 @@
-## 2.3.0+2
+## 2.3.3
 
+* Remove dependency on `dart:html`.
+
+## 2.3.2+1
+
+* `sqflite3: >= 2.3.0`
+* Supports transaction rolled back by an inner statement.
+
+## 2.3.1
+
+* `sqflite3: >= 2.2.0`
+* `sdk: >= 3.2.0`
+
+## 2.3.0+4
+
+* Support `PRAGMA sqflite -- db_config_defensive_off`
 * Dart 3 only.
 * Bundle Windows sqlite3.dll 3.42.0
 

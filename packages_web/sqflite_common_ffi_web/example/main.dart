@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:html' as html;
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -9,6 +8,7 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:sqflite_common_ffi_web/src/sw/constants.dart';
 import 'package:sqflite_common_ffi_web/src/web/load_sqlite_web.dart'
     show SqfliteFfiWebContextExt;
+import 'package:web/web.dart' as web;
 
 import 'ui.dart';
 
@@ -22,7 +22,10 @@ var swOptions = SqfliteFfiWebOptions(
     sharedWorkerUri: Uri.parse('sw.dart.js'),
     // ignore: invalid_use_of_visible_for_testing_member
     forceAsBasicWorker: _useBasicWebWorker);
-
+var swBasicOptions = SqfliteFfiWebOptions(
+    sharedWorkerUri: Uri.parse('sw.dart.js'),
+    // ignore: invalid_use_of_visible_for_testing_member
+    forceAsBasicWorker: true);
 Future incrementPrebuilt() async {
   await incrementSqfliteValueInDatabaseFactory(databaseFactoryWebPrebuilt,
       tag: 'prebuilt');
@@ -111,8 +114,9 @@ Future incrementNoWebWorker() async {
 }
 
 Future<void> main() async {
+  // sqliteFfiWebDebugWebWorker = true;
   initUi();
-  // sqliteFfiWebDebugWebWorker = devWarning(true);
+
   write('$_shc running $_debugVersion');
   // devWarning(incrementVarInSharedWorker());
   // await devWarning(bigInt());
@@ -129,15 +133,22 @@ Future<void> main() async {
 
 var _webContextRegisterAndReady = sqfliteFfiWebStartSharedWorker(swOptions);
 
-Future<html.SharedWorker> sharedWorkerRegisterAndReady() async =>
+var _webBasicContextRegisterAndReady =
+    sqfliteFfiWebStartSharedWorker(swBasicOptions);
+
+Future<web.SharedWorker> sharedWorkerRegisterAndReady() async =>
     (await _webContextRegisterAndReady).sharedWorker!;
 
 Future<SqfliteFfiWebContext> webContextRegisterAndReady() async =>
     (await _webContextRegisterAndReady);
 
+Future<SqfliteFfiWebContext> webBasicContextRegisterAndReady() async =>
+    (await _webBasicContextRegisterAndReady);
 var databaseFactoryWebPrebuilt = databaseFactoryFfiWeb;
 var databaseFactoryWebNoWebWorkerLocal = databaseFactoryFfiWebNoWebWorker;
 var databaseFactoryWebLocal = createDatabaseFactoryFfiWeb(options: swOptions);
+var databaseFactoryWebBasicWorkerLocal =
+    createDatabaseFactoryFfiWeb(options: swBasicOptions);
 
 var key = 'testValue';
 
@@ -159,6 +170,20 @@ Future<void> setTestValue(SqfliteFfiWebContext context, Object? value) async {
 Future<void> incrementVarInSharedWorker() async {
   var context = await webContextRegisterAndReady();
   write('shared worker ready');
+  var value = await getTestValue(context);
+  write('var before $value');
+  if (value is! int) {
+    value = 0;
+  }
+
+  await setTestValue(context, value + 1);
+  value = await getTestValue(context);
+  write('var after $value');
+}
+
+Future<void> incrementVarInBasicdWorker() async {
+  var context = await webBasicContextRegisterAndReady();
+  write('basic worker ready');
   var value = await getTestValue(context);
   write('var before $value');
   if (value is! int) {
@@ -219,6 +244,9 @@ void initUi() {
   addButton('load sqlite', () async {});
   addButton('increment var in shared worker', () async {
     await incrementVarInSharedWorker();
+  });
+  addButton('increment var in basic worker', () async {
+    await incrementVarInBasicdWorker();
   });
   addButton('increment sqflite value in main thread', () async {
     await incrementNoWebWorker();

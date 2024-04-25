@@ -5,6 +5,7 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'ui.dart';
 
 Future<void> main() async {
+  // sqliteFfiWebDebugWebWorker = true;
   // Use the ffi web factory in web apps (flutter or dart) with an overriden file name for testing
   var factory = createDatabaseFactoryFfiWeb(
       options:
@@ -17,6 +18,14 @@ Future<void> main() async {
     factory = createDatabaseFactoryFfiWeb(
         options: SqfliteFfiWebOptions(
             sharedWorkerUri: Uri.parse('sqflite_sw_v2.js')));
+  }
+  if (true) {
+    // devWarning(true)) {
+    factory = createDatabaseFactoryFfiWeb(
+        options: SqfliteFfiWebOptions(
+            // ignore: invalid_use_of_visible_for_testing_member
+            forceAsBasicWorker: true,
+            sharedWorkerUri: Uri.parse('sqflite_sw_v1.js')));
   }
 
   var db = await factory.openDatabase(inMemoryDatabasePath);
