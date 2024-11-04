@@ -107,24 +107,18 @@ If you get this output in debug mode:
 One common mistake is to use the db object in a transaction:
 
 ```dart
-await
-db.transaction
-(
-(txn) async {
-// DEADLOCK HERE
-await db.insert('my_table', {'name': 'my_name'});
+await db.transaction((txn) async {
+  // DEADLOCK HERE
+  await db.insert('my_table', {'name': 'my_name'});
 });
 ```
 
 ...instead of using the correct transaction object (below named `txn`):
 
 ```dart
-await
-db.transaction
-(
-(txn) async {
-// Ok!
-await txn.insert('my_table', {'name': 'my_name'});
+await db.transaction ((txn) async {
+  // Ok!
+  await txn.insert('my_table', {'name': 'my_name'});
 });
 ```
 
@@ -133,9 +127,7 @@ await txn.insert('my_table', {'name': 'my_name'});
 A quick way to view SQL commands printed out is to call before opening any database
 
 ```dart
-await
-Sqflite.devSetDebugModeOn
-(true);
+await Sqflite.devSetDebugModeOn(true);
 ```
 
 This call is on purpose deprecated to force removing it once the SQL issues has been resolved.
@@ -266,7 +258,9 @@ end
 
 ### Module 'FMDB' not found
 
-Since v2.2.1-1, you might encounter `Module 'FMDB' not found` on old projects.
+Versions after v2.3.2 don't include FMDB anymore. You can remove it from your Podfile.
+
+Before v2.3.2 and after v2.2.1, you might encounter `Module 'FMDB' not found` on old projects.
 
 You need to add `use_frameworks!` in your Podfile:
 
@@ -279,6 +273,47 @@ target 'Runner' do
   ...
 end
 ```
+
+### Missing signature
+
+When uploading to App Store Connect, you might get the following warning:
+
+> ITMS-91065: Messing signature - Your app includes “Frameworks/sqflite.framework/sqflite”,
+> which includes sqflite, an SDK that was identified in the documentation as a 
+> privacy-impacting third-party SDK
+
+Relevant issues:
+- https://github.com/tekartik/sqflite/issues/1129
+- https://github.com/flutter/flutter/issues/148300
+
+This might happen if you use frameworks (see https://docs.flutter.dev/add-to-app/ios/project-setup).
+
+Thanks to [@swaraj-rawal](https://github.com/swaraj-raw) for the solution:
+
+So first we need to manually sign the xcFramework using the below command:
+
+```
+codesign --timestamp -v -f --sign "<Identity> (**********)" sqflite.xcframework
+```
+
+use command to check the signature details of the xcFramework:
+
+```
+codesign -dv sqflite.xcframework
+```
+
+then use command:
+`codesign -vv sqflite.xcframework` to check the integrity of the xcFramework, like to find if any error is there in the signature or not.
+If all is okay then you'll see this message after using -vv command.
+```
+$ codesign -vv sqflite.xcframework
+sqflite.xcframework: valid on disk
+sqflite.xcframework: satisfies its Designated Requirement
+```
+
+All set, you're good to go with archiving your iOS app.
+
+Note: There is a .dSYM file associated with the xcFramework Signature, make your .gitignore file is ignoring that .dSYM file.
 
 ## Runtime exception
 
@@ -314,6 +349,25 @@ You could get a more recent version using [`sqflite_common_ffi`](https://pub.dev
 
 You could then add [`sqlite3_flutter_libs`](https://pub.dev/packages/sqlite3_flutter_libs) for ios/android or include your own
 sqlite shared library for desktop or mobile (one for each platform).
+
+
+### Open error
+
+Such error is often reported with something similar to:
+
+```text
+SqfliteFfiException(sqlite_error: 14, , open_failed: SqliteException(14): while opening the database, bad parameter or other API misuse, bad parameter or other API misuse (code 21)})
+```
+
+Please check and ensure that:
+- The database path is correct (please provide it in the bug report, best is to print it out to report it exactly as it is used)
+- The parent folder exists (you should create it if it does not exist)
+- The parent folder is writable (try to create a file in it if you still get the error).
+
+Solutions:
+- Use the `path_provider` package to find the best location for you database (`getDatabasesPath()` is only relevant for Android)
+- Build the database path properly (using `join` from the `path` package)
+- Create the parent folder if it does not exist
 
 ## Error in Flutter web
 

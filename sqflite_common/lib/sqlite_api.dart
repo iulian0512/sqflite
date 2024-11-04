@@ -38,7 +38,7 @@ abstract class DatabaseFactory {
   /// Get the default databases location path.
   ///
   /// When using sqfliteFactory:
-  /// * On Android, it is typically data/data/<package_name>/databases
+  /// * On Android, it is typically `data/data/<package_name>/databases`
   /// * On iOS and MacOS, it is the Documents directory
   ///
   /// For other implementation (ffi), the location is a default location
@@ -293,6 +293,7 @@ abstract class Database implements DatabaseExecutor {
   ///   // this will deadlock!
   ///   await database.execute('CREATE TABLE Test2 (id INTEGER PRIMARY KEY)');
   /// });
+  /// ```
   Future<T> transaction<T>(Future<T> Function(Transaction txn) action,
       {bool? exclusive});
 

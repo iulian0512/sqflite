@@ -1,4 +1,9 @@
-## 0.4.3+1
+## 0.4.5+3
+
+* Setup for sqlite3 2.3.6
+* Improved Wasm support
+
+## 0.4.3+2
 
 * Remove dependency on `dart:html`. Requires rebuilding the worker file.
 

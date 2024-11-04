@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
-import 'package:sqflite_example/database/database.dart';
-import 'package:sqflite_example/main.dart';
+import 'package:sqflite_example_common/database/database.dart';
+import 'package:sqflite_example_common/main.dart';
 import 'package:sqflite_test_app/database/database.dart';
 
 Future<void> main() async {
@@ -14,8 +14,8 @@ Future<void> main() async {
 }
 
 /// Run using ffi (io or web)
-Future<void> mainFfi({bool? webBasicWorker}) async {
-  await initFfi(webBasicWorker: webBasicWorker);
+Future<void> mainFfi({bool? noWorker, bool? webBasicWorker}) async {
+  await initFfi(noWorker: true, webBasicWorker: webBasicWorker);
   await runFfi();
 }
 

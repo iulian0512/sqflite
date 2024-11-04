@@ -1,4 +1,6 @@
 @TestOn('vm')
+library;
+
 import 'dart:io';
 
 import 'package:path/path.dart';
@@ -20,6 +22,7 @@ void main() {
   late String dir;
   void checkBuiltFilesSync({bool exists = true}) {
     expect(File(join(dir, expectedSharedWorkerJsFiled)).existsSync(), exists);
+    expect(File(join(dir, sqlite3WasmFile)).existsSync(), exists);
     expect(File(join(dir, sqlite3WasmFile)).existsSync(), exists);
   }
 

@@ -10,7 +10,6 @@ import 'package:sqflite_common/src/database_mixin.dart';
 import 'package:sqflite_common/src/env_utils.dart';
 import 'package:sqflite_common/src/factory.dart';
 import 'package:sqflite_common/src/factory_mixin.dart';
-import 'package:sqflite_common/src/sql_command.dart';
 import 'package:sqflite_common/src/transaction.dart';
 
 /// Log helper to avoid overflow
@@ -526,6 +525,7 @@ class _EventInfo<T> {
   T throwOrResult() {
     if (error != null) {
       if (isDebug && (stackTrace != null)) {
+        // ignore: avoid_print
         print(stackTrace);
       }
       throw error!;

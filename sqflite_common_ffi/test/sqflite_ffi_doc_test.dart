@@ -1,5 +1,5 @@
 @TestOn('vm')
-library sqflite_common_ffi.test.sqflite_ffi_doc_test;
+library;
 
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:test/test.dart';
@@ -36,6 +36,7 @@ void main() {
     } on DatabaseException catch (e) {
       // no such table: Test
       expect(e.isNoSuchTableError('Test'), isTrue);
+      // ignore: avoid_print
       print(e.toString());
     }
 

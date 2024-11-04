@@ -5,6 +5,7 @@ import 'dart:typed_data';
 // ignore: implementation_imports
 import 'package:sqflite_common/src/mixin/platform.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+import 'package:sqflite_common_ffi_web/src/web/js_utils.dart';
 import 'package:sqflite_common_ffi_web/src/web/load_sqlite_web.dart';
 import 'package:sqlite3/wasm.dart';
 import 'package:web/web.dart' as web;
@@ -37,13 +38,11 @@ class SqfliteDatabaseFileSystemFfiWeb implements DatabaseFileSystem {
     var fs = this.fs;
     // Ignore failure
     try {
+      // Must test, otherwise xDelete throws
       var exists = fs.xAccess(path, 0) != 0;
       if (exists) {
         fs.xDelete(path, 0);
-      }
-
-      if (fs is IndexedDbFileSystem) {
-        await fs.flush();
+        await _flush();
       }
     } finally {}
   }
@@ -125,6 +124,16 @@ class SqfliteFfiHandlerWeb extends SqfliteFfiHandler
     return db;
   }
 
+  Future<void> _flush() async {
+    var fs = _fs;
+
+    if (fs is IndexedDbFileSystem) {
+      try {
+        await fs.flush();
+      } catch (_) {}
+    }
+  }
+
   /// Delete the database file.
   @override
   Future<void> deleteDatabasePlatform(String path) async {
@@ -133,9 +142,7 @@ class SqfliteFfiHandlerWeb extends SqfliteFfiHandler
       var exists = fs.xAccess(path, 0) != 0;
       if (exists) {
         fs.xDelete(path, 0);
-      }
-      if (fs is IndexedDbFileSystem) {
-        await fs.flush();
+        await _flush();
       }
     } catch (_) {
       // Ignore errors
@@ -176,8 +183,8 @@ class RawMessageSenderToWorker extends RawMessageSender {
 
   @override
   void postMessage(Object message, web.MessagePort responsePort) {
-    _worker.postMessage(
-        message.jsify(), messagePortToPortMessageOption(responsePort));
+    _worker.postMessage(message.jsifyValueStrict(),
+        messagePortToPortMessageOption(responsePort));
   }
 
   StreamController<Object>? _errorController;
