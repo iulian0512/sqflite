@@ -66,3 +66,5 @@ GeneratedPluginRegistrant.java
 pubspec_overrides.yaml
 _pubspec_overrides.yaml
 *.tmp
+/sqflite_darwin/darwin/__MACOSX
+/sqflite_darwin/darwin/libspatialite.xcframework

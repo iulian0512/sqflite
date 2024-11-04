@@ -4,6 +4,7 @@
 
 #if SqfliteDarwinDB_SQLITE_STANDALONE
 #import <sqlite3/sqlite3.h>
+#import <spatialite.h>
 #else
 #import <sqlite3.h>
 #endif
@@ -21,6 +22,8 @@ NS_ASSUME_NONNULL_BEGIN
     NSMutableSet        *_openFunctions;
     
     NSDateFormatter     *_dateFormat;
+    void*               _spalitecache;
+
 }
 
 - (SqfliteDarwinResultSet * _Nullable)executeQuery:(NSString *)sql withArgumentsInArray:(NSArray * _Nullable)arrayArgs orDictionary:(NSDictionary * _Nullable)dictionaryArgs orVAList:(va_list)args shouldBind:(BOOL)shouldBind;
@@ -82,6 +85,7 @@ NS_ASSUME_NONNULL_END
         _crashOnErrors              = NO;
         _maxBusyRetryTimeInterval   = 2;
         _isOpen                     = NO;
+        _spalitecache               = nil;
     }
     
     return self;
@@ -105,6 +109,18 @@ NS_ASSUME_NONNULL_END
 #if ! __has_feature(objc_arc)
     [super dealloc];
 #endif
+}
+
+- (void) initspalite
+{
+    _spalitecache= spatialite_alloc_connection();
+    spatialite_init_ex((sqlite3*)_db, _spalitecache, 1);
+}
+
+- (void) cleanupspalite
+{
+    if(_spalitecache!=nil)
+    spatialite_cleanup_ex (_spalitecache);
 }
 
 - (NSURL *)databaseURL {
@@ -195,6 +211,8 @@ NS_ASSUME_NONNULL_END
         NSLog(@"error opening!: %d", err);
         return NO;
     }
+
+    [self initspalite];
     
     if (_maxBusyRetryTimeInterval > 0.0) {
         // set the handler
@@ -229,6 +247,8 @@ NS_ASSUME_NONNULL_END
         NSLog(@"error opening!: %d", err);
         return NO;
     }
+
+    [self initspalite];
     
     if (_maxBusyRetryTimeInterval > 0.0) {
         // set the handler
@@ -277,7 +297,7 @@ NS_ASSUME_NONNULL_END
         }
     }
     while (retry);
-    
+    [self cleanupspalite];
     _db = nil;
     _isOpen = false;
     
