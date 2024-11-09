@@ -21,30 +21,12 @@ Supports iOS, Android and MacOS.
 
 
 ## SPATIALITE Setup for IOS
-* Include the override for FMBD in your runner podfile, example
+add the override in your project's pubspec.yaml
 ```
-
-target 'Runner' do
-  use_frameworks!
-  use_modular_headers!
-  pod 'FMDB' , :git => 'https://github.com/iulian0512/fmdb.git'. # here it is 
-
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-end
-
-```
-* Set build architectures
-```
-post_install do |installer|
-  installer.pods_project.targets.each do |target|
-    flutter_additional_ios_build_settings(target)
-  end
-  installer.pods_project.targets.each do |target|
-    target.build_configurations.each do |config|
-      config.build_settings["VALID_ARCHS[sdk=iphonesimulator*]"] = "x86_64"
-      config.build_settings["VALID_ARCHS[sdk=iphoneos*]"] = "arm64"
-    end
-  end
-end
-
+sqflite_darwin:
+    git:
+      url: https://github.com/iulian0512/sqflite
+      path: sqflite_darwin
+      ref: b433114c1f4481bd1aa72c56a1e29953b1533bb5
+ 
 ```
