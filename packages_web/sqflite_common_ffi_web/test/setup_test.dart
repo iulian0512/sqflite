@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:path/path.dart';
 import 'package:process_run/shell.dart';
 import 'package:sqflite_common_ffi_web/src/constant.dart';
-import 'package:sqflite_common_ffi_web/src/setup/setup.dart';
+import 'package:sqflite_common_ffi_web/src/setup/setup_io.dart';
 import 'package:test/test.dart';
 
 void deleteFileSync(String path) {
@@ -33,7 +33,8 @@ void main() {
       dir = join('.dart_tool', packageName, 'test', 'bin_setup');
       deleteBuiltFilesSync();
       await run(
-          'dart run sqflite_common_ffi_web:setup --verbose --dir ${shellArgument(dir)}');
+        'dart run sqflite_common_ffi_web:setup --verbose --dir ${shellArgument(dir)}',
+      );
       checkBuiltFilesSync();
     });
   }, timeout: const Timeout(Duration(minutes: 5)));

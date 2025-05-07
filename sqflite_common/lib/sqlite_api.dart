@@ -1,3 +1,12 @@
+/// {@canonicalFor sqflite_debug.SqfliteDatabaseFactoryDebug}
+/// {@canonicalFor constant.inMemoryDatabasePath}
+/// {@canonicalFor constant.sqfliteLogLevelNone}
+/// {@canonicalFor constant.sqfliteLogLevelSql}
+/// {@canonicalFor constant.sqfliteLogLevelVerbose}
+/// {@canonicalFor exception.DatabaseException}
+/// {@canonicalFor sql_builder.ConflictAlgorithm}
+library;
+
 import 'dart:async';
 import 'dart:typed_data';
 
@@ -101,8 +110,12 @@ abstract class DatabaseExecutor {
   /// ```
   ///
   /// 0 could be returned for some specific conflict algorithms if not inserted.
-  Future<int> insert(String table, Map<String, Object?> values,
-      {String? nullColumnHack, ConflictAlgorithm? conflictAlgorithm});
+  Future<int> insert(
+    String table,
+    Map<String, Object?> values, {
+    String? nullColumnHack,
+    ConflictAlgorithm? conflictAlgorithm,
+  });
 
   /// This is a helper to query a table and return the items found. All optional
   /// clauses and filters are formatted as SQL queries
@@ -141,16 +154,18 @@ abstract class DatabaseExecutor {
   ///      where: 'columnId = ?',
   ///      whereArgs: [id]);
   /// ```
-  Future<List<Map<String, Object?>>> query(String table,
-      {bool? distinct,
-      List<String>? columns,
-      String? where,
-      List<Object?>? whereArgs,
-      String? groupBy,
-      String? having,
-      String? orderBy,
-      int? limit,
-      int? offset});
+  Future<List<Map<String, Object?>>> query(
+    String table, {
+    bool? distinct,
+    List<String>? columns,
+    String? where,
+    List<Object?>? whereArgs,
+    String? groupBy,
+    String? having,
+    String? orderBy,
+    int? limit,
+    int? offset,
+  });
 
   /// Executes a raw SQL SELECT query and returns a list
   /// of the rows that were found.
@@ -158,8 +173,10 @@ abstract class DatabaseExecutor {
   /// ```
   /// List<Map> list = await database.rawQuery('SELECT * FROM Test');
   /// ```
-  Future<List<Map<String, Object?>>> rawQuery(String sql,
-      [List<Object?>? arguments]);
+  Future<List<Map<String, Object?>>> rawQuery(
+    String sql, [
+    List<Object?>? arguments,
+  ]);
 
   /// Executes a raw SQL SELECT with a cursor.
   ///
@@ -173,22 +190,27 @@ abstract class DatabaseExecutor {
   /// ```
   /// var cursor = await database.rawQueryCursor('SELECT * FROM Test');
   /// ```
-  Future<QueryCursor> rawQueryCursor(String sql, List<Object?>? arguments,
-      {int? bufferSize});
+  Future<QueryCursor> rawQueryCursor(
+    String sql,
+    List<Object?>? arguments, {
+    int? bufferSize,
+  });
 
   /// See [DatabaseExecutor.rawQueryCursor] for details about the argument [bufferSize]
   /// See [DatabaseExecutor.query] for the other arguments.
-  Future<QueryCursor> queryCursor(String table,
-      {bool? distinct,
-      List<String>? columns,
-      String? where,
-      List<Object?>? whereArgs,
-      String? groupBy,
-      String? having,
-      String? orderBy,
-      int? limit,
-      int? offset,
-      int? bufferSize});
+  Future<QueryCursor> queryCursor(
+    String table, {
+    bool? distinct,
+    List<String>? columns,
+    String? where,
+    List<Object?>? whereArgs,
+    String? groupBy,
+    String? having,
+    String? orderBy,
+    int? limit,
+    int? offset,
+    int? bufferSize,
+  });
 
   /// Executes a raw SQL UPDATE query and returns
   /// the number of changes made.
@@ -219,10 +241,13 @@ abstract class DatabaseExecutor {
   /// int count = await db.update(tableTodo, todo.toMap(),
   ///    where: '$columnId = ?', whereArgs: [todo.id]);
   /// ```
-  Future<int> update(String table, Map<String, Object?> values,
-      {String? where,
-      List<Object?>? whereArgs,
-      ConflictAlgorithm? conflictAlgorithm});
+  Future<int> update(
+    String table,
+    Map<String, Object?> values, {
+    String? where,
+    List<Object?>? whereArgs,
+    ConflictAlgorithm? conflictAlgorithm,
+  });
 
   /// Executes a raw SQL DELETE query and returns the
   /// number of changes made.
@@ -294,8 +319,10 @@ abstract class Database implements DatabaseExecutor {
   ///   await database.execute('CREATE TABLE Test2 (id INTEGER PRIMARY KEY)');
   /// });
   /// ```
-  Future<T> transaction<T>(Future<T> Function(Transaction txn) action,
-      {bool? exclusive});
+  Future<T> transaction<T>(
+    Future<T> Function(Transaction txn) action, {
+    bool? exclusive,
+  });
 
   /// Read-only transaction (experimental, for now only supported in async_sqlite, use a normal transaction otherwise)
   Future<T> readTransaction<T>(Future<T> Function(Transaction txn) action);
@@ -309,8 +336,11 @@ abstract class Database implements DatabaseExecutor {
 
   /// testing only
   @Deprecated('Dev only')
-  Future<T> devInvokeSqlMethod<T>(String method, String sql,
-      [List<Object?>? arguments]);
+  Future<T> devInvokeSqlMethod<T>(
+    String method,
+    String sql, [
+    List<Object?>? arguments,
+  ]);
 }
 
 /// Helpers
@@ -340,8 +370,8 @@ extension SqfliteDatabaseExecutorExt on DatabaseExecutor {
 ///
 /// Schema migration (adding column, adding table, adding trigger...)
 /// should happen here.
-typedef OnDatabaseVersionChangeFn = FutureOr<void> Function(
-    Database db, int oldVersion, int newVersion);
+typedef OnDatabaseVersionChangeFn =
+    FutureOr<void> Function(Database db, int oldVersion, int newVersion);
 
 /// Prototype of the function called when the database is created.
 ///
@@ -354,27 +384,33 @@ typedef OnDatabaseCreateFn = FutureOr<void> Function(Database db, int version);
 /// Post initialization should happen here.
 typedef OnDatabaseOpenFn = FutureOr<void> Function(Database db);
 
-/// Prototype of the function called before calling [onCreate]/[onUpdate]/[onOpen]
+/// Prototype of the function called before calling [OpenDatabaseOptions.onCreate]/[OpenDatabaseOptions.onUpgrade]/[OpenDatabaseOptions.onOpen]
 /// when the database is open.
 ///
 /// Post initialization should happen here.
 typedef OnDatabaseConfigureFn = FutureOr<void> Function(Database db);
 
-/// to specify during [openDatabase] for [onDowngrade]
+/// to specify during [openDatabase] for [OpenDatabaseOptions.onDowngrade]
 /// Downgrading will always fail
 Future<void> onDatabaseVersionChangeError(
-    Database db, int oldVersion, int newVersion) async {
+  Database db,
+  int oldVersion,
+  int newVersion,
+) async {
   throw ArgumentError("can't change version from $oldVersion to $newVersion");
 }
 
 Future<void> __onDatabaseDowngradeDelete(
-    Database db, int oldVersion, int newVersion) async {
+  Database db,
+  int oldVersion,
+  int newVersion,
+) async {
   // Implementation is hidden implemented in openDatabase._onDatabaseDowngradeDelete
 }
 
 /// Downgrading will delete the database and open it again.
 ///
-/// To set in [onDowngrade] if you want to delete everything on downgrade.
+/// To set in [OpenDatabaseOptions.onDowngrade] if you want to delete everything on downgrade.
 final OnDatabaseVersionChangeFn onDatabaseDowngradeDelete =
     __onDatabaseDowngradeDelete;
 
@@ -416,7 +452,7 @@ abstract class OpenDatabaseOptions {
   /// database version
   ///
   /// In the first case where [onCreate] is not specified, [onUpgrade] is called
-  /// with its [oldVersion] parameter as `0`. In the second case, you can perform
+  /// with its [OnDatabaseVersionChangeFn.oldVersion] parameter as `0`. In the second case, you can perform
   /// the necessary migration procedures to handle the differing schema
   ///
   /// [onDowngrade] is called only when [version] is lower than the last database
@@ -437,24 +473,26 @@ abstract class OpenDatabaseOptions {
   /// false for in memory database (it is forced to false for `:memory:` path)
   /// but not for uri.
   ///
-  factory OpenDatabaseOptions(
-      {int? version,
-      OnDatabaseConfigureFn? onConfigure,
-      OnDatabaseCreateFn? onCreate,
-      OnDatabaseVersionChangeFn? onUpgrade,
-      OnDatabaseVersionChangeFn? onDowngrade,
-      OnDatabaseOpenFn? onOpen,
-      bool? readOnly = false,
-      bool? singleInstance = true}) {
+  factory OpenDatabaseOptions({
+    int? version,
+    OnDatabaseConfigureFn? onConfigure,
+    OnDatabaseCreateFn? onCreate,
+    OnDatabaseVersionChangeFn? onUpgrade,
+    OnDatabaseVersionChangeFn? onDowngrade,
+    OnDatabaseOpenFn? onOpen,
+    bool? readOnly = false,
+    bool? singleInstance = true,
+  }) {
     return impl.SqfliteOpenDatabaseOptions(
-        version: version,
-        onConfigure: onConfigure,
-        onCreate: onCreate,
-        onUpgrade: onUpgrade,
-        onDowngrade: onDowngrade,
-        onOpen: onOpen,
-        readOnly: readOnly,
-        singleInstance: singleInstance);
+      version: version,
+      onConfigure: onConfigure,
+      onCreate: onCreate,
+      onUpgrade: onUpgrade,
+      onDowngrade: onDowngrade,
+      onOpen: onOpen,
+      readOnly: readOnly,
+      singleInstance: singleInstance,
+    );
   }
 
   /// Specify the expected version.
@@ -509,9 +547,9 @@ abstract class Batch {
   /// and the failure are ignored (i.e. the result for the given operation will
   /// be a DatabaseException)
   ///
-  /// During [Database.onCreate], [Database.onUpgrade], [Database.onDowngrade]
-  /// (we are already in a transaction) or if the batch was created in a
-  /// transaction it will only be commited when
+  /// During [OpenDatabaseOptions.onCreate], [OpenDatabaseOptions.onUpgrade],
+  /// [OpenDatabaseOptions.onDowngrade] (we are already in a transaction) or if
+  /// the batch was created in a transaction it will only be commited when
   /// the transaction is commited ([exclusive] is not used then).
   ///
   /// Otherwise, sqflite will start a transaction to commit this batch. In rare
@@ -542,17 +580,24 @@ abstract class Batch {
   void rawInsert(String sql, [List<Object?>? arguments]);
 
   /// See [Database.insert]
-  void insert(String table, Map<String, Object?> values,
-      {String? nullColumnHack, ConflictAlgorithm? conflictAlgorithm});
+  void insert(
+    String table,
+    Map<String, Object?> values, {
+    String? nullColumnHack,
+    ConflictAlgorithm? conflictAlgorithm,
+  });
 
   /// See [Database.rawUpdate]
   void rawUpdate(String sql, [List<Object?>? arguments]);
 
   /// See [Database.update]
-  void update(String table, Map<String, Object?> values,
-      {String? where,
-      List<Object?>? whereArgs,
-      ConflictAlgorithm? conflictAlgorithm});
+  void update(
+    String table,
+    Map<String, Object?> values, {
+    String? where,
+    List<Object?>? whereArgs,
+    ConflictAlgorithm? conflictAlgorithm,
+  });
 
   /// See [Database.rawDelete]
   void rawDelete(String sql, [List<Object?>? arguments]);
@@ -564,16 +609,18 @@ abstract class Batch {
   void execute(String sql, [List<Object?>? arguments]);
 
   /// See [Database.query];
-  void query(String table,
-      {bool? distinct,
-      List<String>? columns,
-      String? where,
-      List<Object?>? whereArgs,
-      String? groupBy,
-      String? having,
-      String? orderBy,
-      int? limit,
-      int? offset});
+  void query(
+    String table, {
+    bool? distinct,
+    List<String>? columns,
+    String? where,
+    List<Object?>? whereArgs,
+    String? groupBy,
+    String? having,
+    String? orderBy,
+    int? limit,
+    int? offset,
+  });
 
   /// See [Database.query];
   void rawQuery(String sql, [List<Object?>? arguments]);

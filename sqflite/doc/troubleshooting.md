@@ -315,6 +315,34 @@ All set, you're good to go with archiving your iOS app.
 
 Note: There is a .dSYM file associated with the xcFramework Signature, make your .gitignore file is ignoring that .dSYM file.
 
+## Android build issue
+
+### Could not resolve all files for configuration ':sqflite_android:androidJdkImage'
+
+*2024/11/06: Happening on flutter 3.5.4 using latest AndroidStudio*
+
+I found out the same happens using path_provider: https://github.com/flutter/flutter/issues/156558#issuecomment-2446956094
+
+solution summary:
+
+`gradle-wrapper.properties`:
+```
+# distributionUrl=https\://services.gradle.org/distributions/gradle-8.3-all.zip
+# Updated to 8.9
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.9-all.zip
+```
+
+`settings.gradle`:
+```
+plugins {
+    id "dev.flutter.flutter-plugin-loader" version "1.0.0"
+    /// id "com.android.application" version "8.1.0" apply false
+    /// Updated to 8.7.1
+    id "com.android.application" version "8.7.1" apply false
+    id "org.jetbrains.kotlin.android" version "1.8.22" apply false
+}
+```
+
 ## Runtime exception
 
 ### Json1 extension
@@ -368,6 +396,69 @@ Solutions:
 - Use the `path_provider` package to find the best location for you database (`getDatabasesPath()` is only relevant for Android)
 - Build the database path properly (using `join` from the `path` package)
 - Create the parent folder if it does not exist
+
+### iOS runtime error
+
+#### DatabaseException(open_failed) in a background isolate when the device is locked
+
+*experimental*
+
+This issue happens when the device is locked and the data is encrypted and you 
+want to open your database in a background isolate (push notification, background fetch).
+
+The issue is explained here:
+- https://github.com/tekartik/sqflite/issues/924
+
+With a solution explained here:
+- https://github.com/groue/GRDB.swift/issues/571
+
+Basically, when the device is locked and the data is encrypted, the database file is not accessible.
+One solution, if your data is not sensitive, is to disable data protection for the database file by
+creating it in an unprotected directory.
+
+To handle this an iOS specific entry point has been added to create an unprotected folder where
+your database file can be created.
+
+```dart
+/// Default location for database (or use path_provider)
+var databasesPath = await factory.getDatabasesPath();
+
+late String dir;
+
+/// If you want to allow opening the db while your device is locked
+/// (push notification, background fetch) create an unprotected folder
+/// where the db will be created.
+if (Platform.isIOS) {
+  dir = join(databasesPath, 'unprotected');
+  if (!Directory(dir).existsSync()) {
+    await SqfliteDarwin.createUnprotectedFolder(parent, unprotected);
+  }
+} else {
+  // ok for other platforms
+  dir = databasesPath;
+}
+
+var db = await factory.openDatabase(
+  join(dir, 'my_database.db'),
+  options: OpenDatabaseOptions(
+      version: 1,
+      onCreate: (db, version) async {
+        // ...
+      }),
+);
+```
+
+### Out of memory
+
+#### java.lang.OutOfMemoryError
+
+It is an out of memory error so there is not much we can do. Maybe your query result are too big (try to limit the column and rows),
+
+In some Android version, the cursor are limited to 1Mb so this limits the size of each row when doing a query. Big content should indeed not be saved in sqflite.
+
+If it happens while writing, you can try to split into multiple transactions (for example with 1000 operation per transaction).
+
+Sometimes adding `android:largeHeap="true"` in manifest file could help.
 
 ## Error in Flutter web
 

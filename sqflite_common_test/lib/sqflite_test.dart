@@ -9,6 +9,8 @@ import 'package:sqflite_common/src/env_utils.dart'; // ignore: implementation_im
 
 /// Test context for testing
 abstract class SqfliteTestContext {
+  bool get isPlugin;
+
   /// The factory.
   DatabaseFactory get databaseFactory;
 
@@ -110,14 +112,17 @@ mixin SqfliteTestContextMixin implements SqfliteTestContext {
 
   @override
   Future devSetDebugModeOn(bool on) => databaseFactory
-      // ignore: deprecated_member_use
-      .setLogLevel(on ? sqfliteLogLevelVerbose : sqfliteLogLevelNone);
+  // ignore: deprecated_member_use
+  .setLogLevel(on ? sqfliteLogLevelVerbose : sqfliteLogLevelNone);
 
   @override
   bool get supportsRecoveredInTransaction => false;
 
   @override
   bool get supportsUri => false;
+
+  @override
+  bool get isPlugin => false;
 }
 
 /// sqflite local test context mixin.
