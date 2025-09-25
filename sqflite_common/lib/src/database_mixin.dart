@@ -563,7 +563,7 @@ mixin SqfliteDatabaseMixin implements SqfliteDatabase {
       // Simple timeout warning if we cannot get the lock after XX seconds
       final handleTimeoutWarning =
           (utils.lockWarningDuration != null &&
-              utils.lockWarningCallback != null);
+          utils.lockWarningCallback != null);
       late Completer<dynamic> timeoutCompleter;
       if (handleTimeoutWarning) {
         timeoutCompleter = Completer<dynamic>();
@@ -943,7 +943,10 @@ mixin SqfliteDatabaseMixin implements SqfliteDatabase {
     if (openResult is int) {
       return openResult;
     } else if (openResult is Map) {
-      final id = openResult[paramId] as int?;
+      final id = openResult[paramId];
+      if (id is! int) {
+        throw 'invalid open result $openResult';
+      }
       // Recover means we found an instance in the native world
       final recoveredInTransaction =
           openResult[paramRecoveredInTransaction] == true;
@@ -968,7 +971,7 @@ mixin SqfliteDatabaseMixin implements SqfliteDatabase {
           }
         }
       }
-      return id!;
+      return id;
     } else {
       throw 'unsupported result $openResult (${openResult?.runtimeType})';
     }

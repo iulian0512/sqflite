@@ -149,7 +149,9 @@ In Android Studio (> 3.0.1)
   Location might depends how the path was specified (assuming here that are using `getDatabasesPath` to get its base location)
 * Right click on the database and select Save As.... Save it anywhere you want on your PC.
 
-## Enable WAL on Android
+## WAL
+
+### Enable WAL on Android
 
 WAL is disabled by default on Android. Since sqflite v2.0.4-dev.1 You can turn it on by declaring the 
 following in you app manifest (in the application object):
@@ -165,16 +167,56 @@ following in you app manifest (in the application object):
 </application>
 ```
 
-Alternatively a more conservative (multiplatform) way is to call during onConfigure:
+Alternatively, a more conservative (multiplatform) way is to call during onConfigure:
+
+```db
+await db.execute('PRAGMA journal_mode=WAL')
+```
+
+As reported [here](https://github.com/tekartik/sqflite/issues/929) on sqflite Android, if the metadata is not set
+in the manifest, the following should be used
 
 ```db
 await db.rawQuery('PRAGMA journal_mode=WAL')
 ```
 
-As reported [here](https://github.com/tekartik/sqflite/issues/929) on sqflite Android the following (which should be the correct statement fails requiring to use rawQuery instead)
+so something like that could be used, however, I do recommend setting the metadata in the manifest.
 
-```db
-await db.execute('PRAGMA journal_mode=WAL')
+```dart
+try {
+  await db.execute('PRAGMA journal_mode=WAL');
+} catch (e) {
+  await db.rawQuery('PRAGMA journal_mode=WAL');
+}
+```
+
+### Generic way of enabling WAL mode
+
+As of `sqflite_common` 2.5.6, you can simply use during `onConfigure`:
+```dart
+onConfigure: (db) async {
+  ...
+  // Set the journal mode
+  await db.setJournalMode('WAL');
+  ...
+}
+```
+
+## AUTO_VACUUM
+
+`PRAGMA auto_vacuum = xxx` must be called before tables are created during `onConfigure` and before setting the WAL mode. In
+`onConfigure` you can check the database version and if it is 0, you can assume the database is new.
+
+```dart
+onConfigure: (db) async {
+  // Check the version to know if the database exists
+  // auto_vacuum mode must be set before tables are created
+  var version = await db.getVersion();
+  if (version == 0) {
+    await db.execute('PRAGMA auto_vacuum = 2');
+  }
+  ...
+}
 ```
 
 ## setLocale on Android

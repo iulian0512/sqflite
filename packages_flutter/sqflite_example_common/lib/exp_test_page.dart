@@ -817,17 +817,33 @@ CREATE TABLE test (
       }
       await db.close();
     });
+
+    Future<String> getJournalMode(Database db) async {
+      var result = await db.rawQuery('PRAGMA journal_mode');
+      var journalMode = result.first.values.first!.toString();
+      return journalMode;
+    }
+
+    Future<int?> getAutoVacuum(Database db) async {
+      var result = await db.rawQuery('PRAGMA auto_vacuum');
+      var autoVacuum = firstIntValue(result);
+      return autoVacuum;
+    }
+
     // Issue https://github.com/tekartik/sqflite_common/issues/929
     // Pragma has to use rawQuery...why, on sqflite Android
     test('wal', () async {
-      // await Sqflite.devSetDebugModeOn(true);
-      var db = await openDatabase(inMemoryDatabasePath);
+      final path = await initDeleteDb('exp_wal.db');
+      var db = await openDatabase(path);
       try {
         await db.execute('PRAGMA journal_mode=WAL');
       } catch (e) {
-        print(e);
         await db.rawQuery('PRAGMA journal_mode=WAL');
       }
+      expect((await getJournalMode(db)).toLowerCase(), 'wal');
+      await db.setJournalMode('DELETE');
+      expect((await getJournalMode(db)).toLowerCase(), 'delete');
+      await db.setJournalMode('WAL');
       await db.execute('CREATE TABLE test (id INTEGER)');
       await db.insert('test', <String, Object?>{'id': 1});
       try {
@@ -835,6 +851,50 @@ CREATE TABLE test (
         expect(resultSet, [
           {'id': 1},
         ]);
+      } finally {
+        await db.close();
+      }
+    });
+
+    test('auto_vacuum and wal', () async {
+      final path = await initDeleteDb('exp_auto_vacuum_and wal.db');
+      var options = OpenDatabaseOptions(
+        version: 1,
+        onConfigure: (db) async {
+          // Check the version to know if the database exists
+          // auto_vacuum mode must be set before tables are created
+          var version = await db.getVersion();
+          if (version == 0) {
+            await db.execute('PRAGMA auto_vacuum = 2');
+          }
+          var journalMode = (await getJournalMode(db)).toLowerCase();
+          if (journalMode != 'wal') {
+            await db.setJournalMode('WAL');
+          }
+        },
+        onCreate: (db, version) async {
+          await db.execute('CREATE TABLE test (id INTEGER)');
+        },
+      );
+      var db = await databaseFactory.openDatabase(path, options: options);
+      try {
+        await db.insert('test', <String, Object?>{'id': 1});
+
+        Future<void> checkData() async {
+          expect((await getJournalMode(db)).toLowerCase(), 'wal');
+          expect(await getAutoVacuum(db), 2);
+          var resultSet = await db.rawQuery('SELECT id FROM test');
+          expect(resultSet, [
+            {'id': 1},
+          ]);
+        }
+
+        await checkData();
+
+        /// Close and re-open and check the data
+        await db.close();
+        db = await databaseFactory.openDatabase(path, options: options);
+        await checkData();
       } finally {
         await db.close();
       }

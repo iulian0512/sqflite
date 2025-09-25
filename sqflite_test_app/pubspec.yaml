@@ -15,7 +15,7 @@ publish_to: none
 version: 1.1.1
 
 environment:
-  sdk: ^3.7.0
+  sdk: ^3.9.0
 
 dependencies:
   # analyzer: '>=5.2.0'
@@ -40,7 +40,6 @@ dependencies:
   sqflite_example_common:
     git:
       url: https://github.com/tekartik/sqflite
-      ref: dart3a
       path: packages_flutter/sqflite_example_common
   sqflite_common_test:
     path: ../sqflite_common_test

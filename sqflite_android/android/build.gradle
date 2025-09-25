@@ -8,7 +8,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.5.0'
+        classpath 'com.android.tools.build:gradle:8.11.1'
     }
 }
 
@@ -22,8 +22,13 @@ rootProject.allprojects {
 
 allprojects {
     gradle.projectsEvaluated {
-        tasks.withType(JavaCompile) {
-            options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+        tasks.withType(JavaCompile).tap {
+            configureEach {
+                options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation" << "-Xlint:cast" <<
+                        "-Xlint:classfile" << "-Xlint:divzero" << "-Xlint:empty" << "-Xlint:fallthrough" <<
+                        "-Xlint:finally" << "-Xlint:overrides" << "-Xlint:path" << "-Xlint:processing" <<
+                        "-Xlint:rawtypes" << "-Xlint:try"
+            }
         }
     }
 }
@@ -35,15 +40,15 @@ android {
     if (project.android.hasProperty("namespace")) {
         namespace 'com.tekartik.sqflite'
     }
-    compileSdk 34
+    compileSdk = 36 // flutter.compileSdkVersion
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     defaultConfig {
-        minSdk 19
+        minSdk = 19
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     lintOptions {
