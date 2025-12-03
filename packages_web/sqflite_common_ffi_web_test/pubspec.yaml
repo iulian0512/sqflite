@@ -4,7 +4,7 @@ version: 0.1.0
 publish_to: none
 
 environment:
-  sdk: ^3.9.0
+  sdk: ^3.10.0
 
 dependencies:
   path: '>=1.7.0'
@@ -20,13 +20,14 @@ dev_dependencies:
   lints: '>=2.0.0'
   process_run:
   test:
+  dev_build: '>=1.1.2+11'
 dependency_overrides:
   sqflite_common_ffi_web:
     path: ../sqflite_common_ffi_web
-  sqflite_common_ffi:
-    path: ../../sqflite_common_ffi
-  sqflite_common:
-    path: ../../sqflite_common
+  # sqflite_common_ffi:
+  #  path: ../../sqflite_common_ffi
+  # sqflite_common:
+  #  path: ../../sqflite_common
   sqflite_common_test:
     path: ../../sqflite_common_test
 
