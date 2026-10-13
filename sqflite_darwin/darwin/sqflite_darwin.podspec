@@ -25,7 +25,7 @@ Pod::Spec.new do |s|
     'OTHER_CFLAGS' => '-DSqfliteDarwinDB_SQLITE_STANDALONE'
   }
   s.prepare_command = <<-CMD
-  wget -O libspatialite510_xcframework.zip "https://dev.intergraph.ro/iulian/libspatialite_sqflite240.xcframework.zip" && 
+  wget -O libspatialite510_xcframework.zip "https://dev.intergraph.ro/iulian/libspatialite_sqflite244.xcframework.zip" && 
   unzip -o libspatialite510_xcframework.zip -d .
   rm libspatialite510_xcframework.zip
 CMD
