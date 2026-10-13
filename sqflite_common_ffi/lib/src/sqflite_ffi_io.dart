@@ -56,9 +56,18 @@ void sqfliteFfiInit() {
 ///   ...
 /// }
 /// ```
+///
+/// If [isolatePortServer] is provided (not supported on the web), it is used
+/// to share the sqflite isolate between isolates, typically using Flutter
+/// `IsolateNameServer` (see the `sqflite_ffi` package).
 DatabaseFactory createDatabaseFactoryFfi({
   SqfliteFfiInit? ffiInit,
   bool noIsolate = false,
+  SqfliteFfiIsolatePortServer? isolatePortServer,
 }) {
-  return createDatabaseFactoryFfiImpl(ffiInit: ffiInit, noIsolate: noIsolate);
+  return createDatabaseFactoryFfiImpl(
+    ffiInit: ffiInit,
+    noIsolate: noIsolate,
+    isolatePortServer: isolatePortServer,
+  );
 }

@@ -1,36 +1,43 @@
 import 'dart:collection';
-import 'dart:io';
+//import 'dart:io';
 
-import 'package:path/path.dart';
+import 'package:meta/meta.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:sqflite_common_ffi_async/src/sqflite_ffi_async_factory.dart';
 import 'package:sqflite_common_ffi_async/src/sqflite_ffi_async_transaction.dart';
-import 'package:sqlite_async/sqlite3.dart' as sqlite3;
+import 'package:sqlite3/common.dart' as sqlite3;
 import 'package:sqlite_async/sqlite_async.dart' as sqlite_async;
 
 import 'import.dart';
 
-/// Ffi async database implementation.
-class SqfliteDatabaseFfiAsync extends SqfliteDatabaseBase {
-  static int _id = 0;
-  late final _asyncId = ++_id;
-  late sqlite_async.SqliteDatabase _database;
+/// Ffi async database interface
+abstract class SqfliteDatabaseFfiAsync implements SqfliteDatabase {}
 
+/// Ffi async database base implementation.
+abstract class SqfliteDatabaseFfiAsyncBase extends SqfliteDatabaseBase {
   /// Ffi async database implementation.
-  SqfliteDatabaseFfiAsync(super.openHelper, super.path);
+  SqfliteDatabaseFfiAsyncBase(super.openHelper, super.path);
+  static int _id = 0;
+
+  /// This db id, generated on start
+  late final ffiAsyncId = ++_id;
+
+  /// The underlying database
+  @protected
+  late sqlite_async.SqliteDatabase ffiAsyncDatabase;
 
   @override
   Future<T> transaction<T>(
     Future<T> Function(Transaction txn) action, {
     bool? exclusive,
   }) async {
+    checkNotClosed();
     return _wrapFfiAsyncCall(() async {
       if (openTransaction is SqfliteFfiAsyncTransaction) {
         var sqfliteTxn = openTransaction as SqfliteFfiAsyncTransaction;
         var result = await action(sqfliteTxn);
         return result;
       }
-      return await _database.writeTransaction((wc) async {
+      return await ffiAsyncDatabase.writeTransaction((wc) async {
         var txn = SqfliteFfiAsyncTransaction(this, wc);
         var result = await action(txn);
         return result;
@@ -42,65 +49,19 @@ class SqfliteDatabaseFfiAsync extends SqfliteDatabaseBase {
   Future<T> readTransaction<T>(
     Future<T> Function(Transaction txn) action,
   ) async {
+    checkNotClosed();
     return _wrapFfiAsyncCall(() async {
       if (openTransaction is SqfliteFfiAsyncTransaction) {
         var sqfliteTxn = openTransaction as SqfliteFfiAsyncTransaction;
         var result = await action(sqfliteTxn);
         return result;
       }
-      return await _database.readTransaction((wc) async {
+      return await ffiAsyncDatabase.readTransaction((wc) async {
         var txn = SqfliteFfiAsyncReadTransaction(this, wc);
         var result = await action(txn);
         return result;
       });
     });
-  }
-
-  @override
-  Future<int> openDatabase() async {
-    sqlite_async.SqliteOptions sqliteOptions;
-    var maxReaders = sqlite_async.SqliteDatabase.defaultMaxReaders;
-    var path = this.path;
-    if (path == inMemoryDatabasePath) {
-      var dir = await Directory.systemTemp.createTemp();
-      path = this.path = join(dir.path, 'in_memory_$_asyncId.db');
-    }
-    if (options?.readOnly ?? false) {
-      if (!await factoryFfi.databaseExists(path)) {
-        throw SqfliteDatabaseException(
-          'read-only Database not found: $path',
-          null,
-        );
-      }
-      sqliteOptions = const sqlite_async.SqliteOptions(
-        journalMode: null,
-        journalSizeLimit: null,
-        synchronous: null,
-      );
-    } else {
-      var dir = Directory(dirname(path));
-      try {
-        if (!dir.existsSync()) {
-          // Create the directory if needed
-          await dir.create(recursive: true);
-        }
-      } catch (e) {
-        // ignore: avoid_print
-        print('error checking directory $dir: $e');
-      }
-      sqliteOptions = const sqlite_async.SqliteOptions.defaults();
-    }
-    final factory = sqlite_async.DefaultSqliteOpenFactory(
-      path: path,
-      sqliteOptions: sqliteOptions,
-    );
-
-    _database = sqlite_async.SqliteDatabase.withFactory(
-      factory,
-      maxReaders: maxReaders,
-    );
-    //_database = sqlite_async.SqliteDatabase(path: path);
-    return _asyncId;
   }
 
   Future<List<Map<String, Object?>>> _select(
@@ -155,7 +116,8 @@ class SqfliteDatabaseFfiAsync extends SqfliteDatabaseBase {
         message: 'read transaction cannot be used for write',
       );
     }
-    return (txn as SqfliteFfiAsyncTransaction?)?.writeContext ?? _database;
+    return (txn as SqfliteFfiAsyncTransaction?)?.writeContext ??
+        ffiAsyncDatabase;
   }
 
   sqlite_async.SqliteReadContext _readContext(SqfliteTransaction? txn) {
@@ -171,7 +133,7 @@ class SqfliteDatabaseFfiAsync extends SqfliteDatabaseBase {
   ) {
     if (txn == null) {
       return _wrapFfiAsyncCall(() async {
-        return await _database.writeTransaction(action);
+        return await ffiAsyncDatabase.writeTransaction(action);
       });
     } else {
       return _wrapFfiAsyncCall(() async {
@@ -326,31 +288,26 @@ class SqfliteDatabaseFfiAsync extends SqfliteDatabaseBase {
     return result['count'] as int;
   }
 
+  /// Called by the base close implementation (which marks the database as
+  /// closed first so that any later access fails with a database_closed error
+  /// instead of reaching the underlying sqlite_async database while it is
+  /// shutting down).
   @override
-  Future<void> close() async {
-    await super.close();
-  }
-
-  Future<void> _closeSqfliteAsyncDatabase() {
-    return _database.close();
-  }
-
-  @override
-  Future<void> closeDatabase() {
-    return _closeSqfliteAsyncDatabase();
+  Future<void> invokeCloseDatabase(int databaseId) {
+    return ffiAsyncDatabase.close();
   }
 }
 
 /// Result set implementation.
 class SqfliteResultSet extends ListBase<Map<String, Object?>> {
+  /// Result set implementation.
+  SqfliteResultSet(this.resultSet);
+
   /// Result set data.
   final sqlite3.ResultSet resultSet;
 
   @override
   int get length => resultSet.length;
-
-  /// Result set implementation.
-  SqfliteResultSet(this.resultSet);
 
   @override
   Map<String, Object?> operator [](int index) {

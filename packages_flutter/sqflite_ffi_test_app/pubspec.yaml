@@ -1,0 +1,48 @@
+name: sqflite_ffi_test_app
+description: sqflite_ffi test application.
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: ^3.13.0
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ">=1.0.9"
+  path:
+  sqflite_ffi: ">=0.1.0"
+  sqflite_example_common:
+    git:
+      url: https://github.com/tekartik/sqflite
+      path: packages_flutter/sqflite_example_common
+  sqflite_common_test:
+    git:
+      url: https://github.com/tekartik/sqflite
+      path: sqflite_common_test
+  dev_build: ">=1.1.8+2"
+  path_provider: ">=2.1.6"
+  cupertino_ui: ">=1.1.1"
+  material_ui: ">=1.5.0"
+dev_dependencies:
+  flutter_lints: ">=6.0.0"
+  flutter_test:
+    sdk: flutter
+  tekartik_app_dev_menu:
+    git:
+      url: https://github.com/tekartik/app_common_utils.dart
+      path: app_dev_menu
+
+dependency_overrides:
+  sqflite_common:
+    path: ../../sqflite_common
+  sqflite_common_ffi:
+    path: ../../sqflite_common_ffi
+  sqflite_ffi:
+    path: ../sqflite_ffi
+  sqflite_example_common:
+    path: ../sqflite_example_common
+
+flutter:
+  uses-material-design: true

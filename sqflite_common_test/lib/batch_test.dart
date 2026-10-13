@@ -3,7 +3,7 @@ import 'package:sqflite_common_test/sqflite_test.dart';
 import 'package:test/test.dart';
 
 /// Run batch test.
-void run(SqfliteTestContext context) {
+void run(SqfliteTestContext context, {bool noManualTransactionTest = false}) {
   final factory = context.databaseFactory;
   group('raw', () {
     test('BatchQuery', () async {
@@ -178,7 +178,7 @@ void run(SqfliteTestContext context) {
       ]);
 
       await db.close();
-    });
+    }, skip: noManualTransactionTest);
 
     test('Batch continue on error', () async {
       //await Sqflite.devSetDebugModeOn();
@@ -236,7 +236,26 @@ void run(SqfliteTestContext context) {
           await batch.commit(continueOnError: true);
           fail('should fail');
         } on DatabaseException catch (e) {
-          expect(e.isUniqueConstraintError(), isTrue);
+          try {
+            expect(e.isUniqueConstraintError(), isTrue, reason: e.toString());
+          } catch (_) {
+            try {
+              /// On sqflite_async we only get something like SqliteException(0): Transaction rolled back by earlier statement}) DatabaseException(SqliteException(0): Transaction rolled back by earlier statement)
+              expect(
+                e.toString().toLowerCase(),
+                contains('transaction rolled back'),
+                reason: e.toString(),
+              );
+            } catch (_) {
+              /// On sqflite we get something like
+              /// 'databaseexception(cannot commit - no transaction is active (code 1 sqlite_error)) sql \'commit\' args []'
+              expect(
+                e.toString().toLowerCase(),
+                contains('no transaction is active'),
+                reason: e.toString(),
+              );
+            }
+          }
         }
 
         expect(await db.query('Test'), isEmpty);

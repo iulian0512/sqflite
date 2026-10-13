@@ -1,7 +1,7 @@
 name: sqflite_common_ffi_async
 homepage: https://github.com/tekartik/sqflite/tree/master/packages/sqflite_common_ffi_async
 description: Sqflite API on top on sqlite_async from PowerSync, ffi based implementation.
-version: 0.1.4
+version: 1.0.3
 
 # This package supports all platforms listed below.
 platforms:
@@ -12,15 +12,16 @@ platforms:
   ios:
 
 environment:
-  sdk: ^3.9.0
+  sdk: ^3.12.0
 
 dependencies:
-  path: '>=1.8.0 <3.0.0'
-  sqflite_common: '>=2.5.4 <4.0.0'
-  sqflite_common_ffi: '>=2.3.3 <2.4.0'
-  sqlite3: '>=2.0.0 <3.0.0'
-  sqlite_async: '>=0.6.0 <2.0.0'
+  path: ">=1.8.0 <3.0.0"
+  sqflite_common: ">=2.5.9 <4.0.0"
+  sqflite_common_ffi: ">=2.4.1 <4.0.0"
+  sqlite3: ">=3.3.1 <4.0.0"
+  sqlite_async: ">=0.14.2 <1.0.0"
+  meta: ">=1.17.0 <3.0.0"
 
 dev_dependencies:
-  lints: '>=2.0.0'
-  test: '>=1.21.0'
+  lints: ">=6.1.0"
+  test: ">=1.21.0"

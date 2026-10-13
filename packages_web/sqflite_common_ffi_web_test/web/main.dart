@@ -1,8 +1,7 @@
 import 'package:sqflite_common/sqlite_api.dart';
 import 'package:sqflite_common/utils/utils.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
-
-import 'ui.dart';
+import 'package:sqflite_common_ffi_web_test/src/ui.dart';
 
 Future<void> main() async {
   // sqliteFfiWebDebugWebWorker = true;

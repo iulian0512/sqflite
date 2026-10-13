@@ -6,6 +6,7 @@ import 'package:sqflite_common/src/cursor.dart';
 import 'package:sqflite_common/src/database.dart';
 import 'package:sqflite_common/src/exception.dart';
 import 'package:sqflite_common/src/factory.dart';
+import 'package:sqflite_common/src/open_options.dart';
 import 'package:sqflite_common/src/path_utils.dart';
 import 'package:sqflite_common/src/sql_builder.dart';
 import 'package:sqflite_common/src/transaction.dart';
@@ -29,6 +30,7 @@ class SqfliteDatabaseBase
   }) {
     this.openHelper = openHelper;
     this.path = path;
+    this.options = options;
   }
 }
 
@@ -345,7 +347,7 @@ extension SqfliteDatabaseMixinExt on SqfliteDatabase {
   ) {
     var methodArguments = <String, Object?>{
       paramSql: sql,
-      if (sqlArguments != null) paramSqlArguments: sqlArguments,
+      paramSqlArguments: ?sqlArguments,
     }..addAll(getBaseDatabaseMethodArguments(txn));
     return methodArguments;
   }
@@ -945,7 +947,7 @@ mixin SqfliteDatabaseMixin implements SqfliteDatabase {
     } else if (openResult is Map) {
       final id = openResult[paramId];
       if (id is! int) {
-        throw 'invalid open result $openResult';
+        throw StateError('invalid open result $openResult');
       }
       // Recover means we found an instance in the native world
       final recoveredInTransaction =
@@ -953,8 +955,11 @@ mixin SqfliteDatabaseMixin implements SqfliteDatabase {
       // in this case, we are going to rollback any changes in case a transaction
       // was in progress. This catches hot-restart scenario
       if (recoveredInTransaction) {
+        var rollbackActiveTransactionOnOpen =
+            (options as SqfliteOpenDatabaseOptions)
+                .rollbackActiveTransactionOnOpen;
         // Don't do it for read-only
-        if (!readOnly) {
+        if (!readOnly && rollbackActiveTransactionOnOpen) {
           // We are not yet open so invoke the plugin directly
           try {
             await safeInvokeMethod<Object?>(methodExecute, <String, Object?>{
@@ -973,7 +978,9 @@ mixin SqfliteDatabaseMixin implements SqfliteDatabase {
       }
       return id;
     } else {
-      throw 'unsupported result $openResult (${openResult?.runtimeType})';
+      throw UnsupportedError(
+        'unsupported result $openResult (${openResult?.runtimeType})',
+      );
     }
   }
 
@@ -1110,7 +1117,8 @@ mixin SqfliteDatabaseMixin implements SqfliteDatabase {
           }
         }
 
-        options.onDowngrade = onDatabaseDowngradeDoDelete;
+        (options as SqfliteOpenDatabaseOptions).onDowngrade =
+            onDatabaseDowngradeDoDelete;
       }
 
       id = databaseId;

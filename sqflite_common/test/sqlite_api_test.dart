@@ -21,6 +21,14 @@ void main() {
         sqfliteLogLevelNone,
         sqfliteLogLevelSql,
         sqfliteLogLevelVerbose,
+        SqfliteSqlCommand,
+
+        SqfliteCursorRowCallback,
+        (null as DatabaseExecutor?)?.rawQueryIterate ?? false,
+        (null as DatabaseExecutor?)?.queryIterate ?? false,
+        SqfliteSqlCommand.raw(SqliteSqlCommandType.execute, 'PRAGMA'),
+        (null as SqfliteSqlCommand?)?.query ?? false,
+        SqliteSqlCommandType.query,
       ]) {
         expect(value, isNotNull);
       }

@@ -1,9 +1,13 @@
 import 'dart:js_interop';
 
 import 'package:sqflite_common/sqlite_api.dart';
+// ignore: implementation_imports
+import 'package:sqflite_common/src/constant.dart' show methodOpenDatabase;
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+import 'package:sqflite_common_ffi_web/src/open_options_check.dart';
 import 'package:sqflite_common_ffi_web/src/sqflite_ffi_impl_web.dart'
     show SqfliteFfiHandlerWeb;
+import 'package:sqflite_common_ffi_web/src/sw/constants.dart';
 import 'package:sqflite_common_ffi_web/src/utils.dart';
 import 'package:sqflite_common_ffi_web/src/web/load_sqlite_web.dart'
     show
@@ -46,6 +50,10 @@ DatabaseFactory createDatabaseFactoryFfiWeb({
   return buildDatabaseFactory(
     tag: tag ?? 'ffi_web',
     invokeMethod: (String method, [Object? arguments]) async {
+      if (method == methodOpenDatabase) {
+        // singleInstance: false is not supported on the web
+        checkOpenDatabaseArgumentsWeb(arguments);
+      }
       final methodCall = FfiMethodCall(method, arguments);
       if (noWebWorker) {
         if (context == null) {
@@ -117,6 +125,12 @@ Future<dynamic> ffiMethodCallHandleNoWebWorker(
   try {
     if (_debug) {
       _log('handle $methodCall');
+    }
+
+    /// Handle web options (get only)
+    var method = methodCall.method;
+    if (method == methodGetWebOptions) {
+      return context.options.toMap();
     }
     dynamic result = await methodCall.rawHandle();
 

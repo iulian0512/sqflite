@@ -1,3 +1,15 @@
+## 2.4.4
+
+* Add `sqflite-darwin-setup` agent skill in `skills/`, installable with `dart run skills@ get`
+
+## 2.4.3+1
+
+* Minor SPM support update
+
+## 2.4.3
+
+* Requires dart 3.12
+
 ## 2.4.2
 
 * Requires dart 3.7

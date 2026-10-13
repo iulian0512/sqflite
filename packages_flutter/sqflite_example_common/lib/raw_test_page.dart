@@ -14,9 +14,9 @@ import 'test_page.dart';
 /// Raw test page.
 class RawTestPage extends TestPage {
   /// Raw test page.
-  RawTestPage({Key? key}) : super('Raw tests', key: key) {
+  RawTestPage({super.key}) : super('Raw tests') {
     test('Simple', () async {
-      // await Sqflite.devSetDebugModeOn(true);
+      // await databaseFactory.setLogLevel(sqfliteLogLevelVerbose);
 
       final path = await initDeleteDb('raw_simple.db');
       final db = await openDatabase(path);

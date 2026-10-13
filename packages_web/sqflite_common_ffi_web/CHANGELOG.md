@@ -1,3 +1,26 @@
+## 1.2.0
+
+* Fix `deleteDatabase`, `databaseExists`, `readDatabaseBytes` and `writeDatabaseBytes` when the
+  application is compiled with dart2wasm (`flutter build web --wasm`): paths are now resolved the way
+  sqlite does (requires `sqflite_common` 2.5.13, web detection was wrong with dart2wasm)
+* Update sqlite3 wasm build to 3.6.0
+* `openDatabase` throws an `ArgumentError` when `singleInstance` is false for a persistent database:
+  multiple connections to the same database file are not supported on the web (no locking between
+  connections in the virtual file system, which could corrupt the database).
+
+## 1.1.3
+
+* Add `sqflite-common-ffi-web-options` and `sqflite-common-ffi-web-setup` agent skills in `skills/`, installable with `dart run skills@ get`
+
+## 1.1.2
+
+* Requires dart 3.12
+
+## 1.1.1
+
+* Update sqlite3 wasm build to 3.1.2
+* Fix wasm and indexed db name overriding in shared worker mode
+
 ## 1.1.0
 
 * sqlite ^3.1.0 (deps and wasm build)

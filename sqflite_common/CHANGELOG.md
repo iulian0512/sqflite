@@ -1,3 +1,40 @@
+## 2.5.13+1
+
+* Fix web detection (`kSqfliteIsWeb`) when compiled with dart2wasm: database paths were
+  rewritten as absolute urls, which broke `databaseExists`, `deleteDatabase`,
+  `readDatabaseBytes` and `writeDatabaseBytes` in `sqflite_common_ffi_web`
+* Allow general read access to `databaseFactoryOrNull`.
+
+## 2.5.12
+
+* Add `sqflite-common-api` agent skill in `skills/`, installable with `dart run skills@ get`
+
+## 2.5.11
+
+* Add `sandbox()` extension method on `DatabaseFactory` to create a factory
+  where every database is located below a root path
+
+## 2.5.10+1
+
+* Add `options` to `openDatabase`
+
+## 2.5.9
+
+* Requires dart 3.12
+
+## 2.5.8
+
+* Add `rollbackActiveTransactionOnOpen` open options for native implementation when using singleInstance.
+  in release mode by default it will no more rollback active transactions on opening the DB
+
+## 2.5.7
+
+* Add `iterate` method and export `SqfliteSqlCommand` and extension helpers
+
+## 2.5.6+1
+
+* Requires dart 3.10
+
 ## 2.5.6
 
 * Add `Database.setJournalMode` extension helper method.

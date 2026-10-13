@@ -23,10 +23,18 @@ export 'package:sqflite_common/src/constant.dart'
         sqfliteLogLevelNone,
         sqfliteLogLevelSql,
         sqfliteLogLevelVerbose;
+export 'package:sqflite_common/src/database_executor_iterate_ext.dart'
+    show SqfliteDatabaseExecutorIterateExt, SqfliteCursorRowCallback;
 export 'package:sqflite_common/src/database_ext.dart' show SqfliteDatabaseExt;
+export 'package:sqflite_common/src/database_factory_sandbox.dart'
+    show SqfliteDatabaseFactorySandboxExtension;
 export 'package:sqflite_common/src/exception.dart' show DatabaseException;
 export 'package:sqflite_common/src/sqflite_debug.dart'
     show SqfliteDatabaseFactoryDebug, DatabaseFactoryLoggerDebugExt;
+export 'package:sqflite_common/src/sql_command.dart'
+    show SqfliteSqlCommand, SqliteSqlCommandType;
+export 'package:sqflite_common/src/sql_command_executor_ext.dart'
+    show SqfliteSqlCommandExecutorExt;
 
 /// Basic databases operations
 abstract class DatabaseFactory {
@@ -72,11 +80,13 @@ abstract class DatabaseFactory {
   Future<Uint8List> readDatabaseBytes(String path);
 }
 
-///
 /// Common API for [Database] and [Transaction] to execute SQL commands
-///
 abstract class DatabaseExecutor {
-  /// Execute an SQL query with no return value.
+  /// Executes a single SQL statement with no return value.
+  ///
+  /// You cannot have multiple statements (separated by `;` or by line), as this
+  /// is not supported.
+  /// i.e. you cannot create 2 tables for example.
   ///
   /// ```
   ///   await db.execute(
@@ -297,9 +307,7 @@ abstract class DatabaseExecutor {
 /// to use during a transaction
 abstract class Transaction implements DatabaseExecutor {}
 
-///
 /// Database to send sql commands, created during [openDatabase]
-///
 abstract class Database implements DatabaseExecutor {
   /// The path of the database
   String get path;
@@ -350,18 +358,14 @@ extension SqfliteDatabaseExecutorExt on DatabaseExecutor {
 
   SqfliteTransaction? get _txn => (this as SqfliteDatabaseExecutor).txn;
 
-  ///
   /// Set the database inner version
   /// Used internally for open helpers and automatic versioning
-  ///
   Future<void> setVersion(int version) {
     _db.checkNotClosed();
     return _db.txnSetVersion(_txn, version);
   }
 
-  ///
   /// Get the database inner version
-  ///
   Future<int> getVersion() {
     _db.checkNotClosed();
     return _db.txnGetVersion(_txn);
@@ -413,13 +417,11 @@ Future<void> __onDatabaseDowngradeDelete(
 /// Downgrading will delete the database and open it again.
 ///
 /// To set in [OpenDatabaseOptions.onDowngrade] if you want to delete everything on downgrade.
-final OnDatabaseVersionChangeFn onDatabaseDowngradeDelete =
+const OnDatabaseVersionChangeFn onDatabaseDowngradeDelete =
     __onDatabaseDowngradeDelete;
 
-///
 /// Options for opening the database
 /// see [openDatabase] for details
-///
 abstract class OpenDatabaseOptions {
   /// Open the database at a given path
   ///
@@ -475,6 +477,30 @@ abstract class OpenDatabaseOptions {
   /// false for in memory database (it is forced to false for `:memory:` path)
   /// but not for uri.
   ///
+  /// On the web (`sqflite_common_ffi_web`), [singleInstance] must be true
+  /// for a persistent database, multiple connections to the same database
+  /// file are not supported and an `ArgumentError` is thrown.
+  ///
+  /// Experimental for sqflite plugin. When [rollbackActiveTransactionOnOpen] is
+  /// true and [singleInstance] is true, any active transaction from another
+  /// isolate is rolled back when opening the database.
+  ///
+  /// This is useful when using the same database from multiple isolates.
+  /// During hot restart, a transaction may still be active in another isolate,
+  /// and rollback may be needed to reopen the database safely.
+  ///
+  /// By default, this is true in debug mode and false in release mode.
+  /// Before this option was added, rollback on open was always enabled and
+  /// could not be disabled. This could cause unexpected transaction rollbacks
+  /// in release mode.
+  ///
+  /// If [singleInstance] is true when using multiple isolates, make sure no
+  /// background isolate closes the database, since that might close the
+  /// database for all isolates.
+  ///
+  /// Set [rollbackActiveTransactionOnOpen] to false if you do not want an
+  /// active transaction to be rolled back when the database is opened,
+  /// typically if you explicitly create multiple isolate
   factory OpenDatabaseOptions({
     int? version,
     OnDatabaseConfigureFn? onConfigure,
@@ -484,6 +510,7 @@ abstract class OpenDatabaseOptions {
     OnDatabaseOpenFn? onOpen,
     bool? readOnly = false,
     bool? singleInstance = true,
+    bool? rollbackActiveTransactionOnOpen,
   }) {
     return impl.SqfliteOpenDatabaseOptions(
       version: version,
@@ -494,42 +521,41 @@ abstract class OpenDatabaseOptions {
       onOpen: onOpen,
       readOnly: readOnly,
       singleInstance: singleInstance,
+      rollbackActiveTransactionOnOpen: rollbackActiveTransactionOnOpen,
     );
   }
 
   /// Specify the expected version.
-  int? version;
+  int? get version;
 
   /// called right after opening the database.
-  OnDatabaseConfigureFn? onConfigure;
+  OnDatabaseConfigureFn? get onConfigure;
 
   /// Called when the database is created.
-  OnDatabaseCreateFn? onCreate;
+  OnDatabaseCreateFn? get onCreate;
 
   /// Called when the database is upgraded.
-  OnDatabaseVersionChangeFn? onUpgrade;
+  OnDatabaseVersionChangeFn? get onUpgrade;
 
   /// Called when the database is downgraded.
   ///
   /// Use [onDatabaseDowngradeDelete] for re-creating the database
-  OnDatabaseVersionChangeFn? onDowngrade;
+  OnDatabaseVersionChangeFn? get onDowngrade;
 
   /// Called after all other callbacks have been called.
-  OnDatabaseOpenFn? onOpen;
+  OnDatabaseOpenFn? get onOpen;
 
   /// Open the database in read-only mode (no callback called).
-  late bool readOnly;
+  bool get readOnly;
 
   /// The existing single-instance (hot-restart)
-  late bool singleInstance;
+  bool get singleInstance;
 }
 
-///
 /// A batch is used to perform multiple operation as a single atomic unit.
 /// A Batch object can be acquired by calling [Database.batch]. It provides
 /// methods for adding operation. None of the operation will be
 /// executed (or visible locally) until commit() is called.
-///
 ///
 /// ```
 /// batch = db.batch();

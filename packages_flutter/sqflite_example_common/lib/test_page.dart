@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:meta/meta.dart';
 import 'package:sqflite_common/sqflite.dart';
 import 'package:sqflite_common/sqflite_dev.dart';
@@ -15,6 +15,7 @@ export 'package:matcher/matcher.dart';
 export 'package:sqflite_example_common/database/database.dart';
 
 export 'src/expect.dart' show expect, fail;
+
 // ignore_for_file: avoid_print
 
 /// Base test page.

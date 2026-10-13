@@ -8,12 +8,11 @@ import 'exception.dart';
 
 /// Transaction param, new in transaction v2
 class SqfliteTransactionParam {
-  /// null for no transaction
-  ///
-  final int? transactionId;
-
   /// Transaction param, new in transaction v2.
   SqfliteTransactionParam(this.transactionId);
+
+  /// null for no transaction
+  final int? transactionId;
 }
 
 /// Transaction mixin.

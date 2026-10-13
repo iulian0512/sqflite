@@ -1,10 +1,10 @@
 name: sqflite_example
 description: Demonstrates how to use the sqflite plugin and perform some tests.
 publish_to: none
-version: '0.4.0'
+version: "0.4.0"
 
 environment:
-  sdk: ^3.9.0
+  sdk: ^3.13.0
 
 dependencies:
   path: any
@@ -27,13 +27,14 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   test:
-  process_run: '>=0.11.0+2'
+  process_run: ">=0.11.0+2"
   pub_semver: 
 
 # For information on the generic Dart part of this file, see the
 # following page: https://www.dartlang.org/tools/pub/pubspec
 
 # The following section is specific to Flutter.
+  material_ui: ">=1.5.0"
 flutter:
 
   # The following line ensures that the Material Icons font is

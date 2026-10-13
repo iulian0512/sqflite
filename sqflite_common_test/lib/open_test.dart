@@ -125,6 +125,10 @@ void run(SqfliteTestContext context) {
     });
 
     Future<bool> checkFileExists(String path) async {
+      if (!context.supportsMultipleInstances) {
+        // A second connection cannot be opened (web), check the file only.
+        return factory.databaseExists(path);
+      }
       var exists = false;
       try {
         var db = await factory.openDatabase(
@@ -210,15 +214,21 @@ void run(SqfliteTestContext context) {
     });
 
     test('open in sub sub directory', () async {
+      var options = OpenDatabaseOptions(
+        version: 1,
+        onCreate: (Database db, int version) async {
+          await db.execute('CREATE TABLE Test (id INTEGER PRIMARY KEY)');
+        },
+      );
+      await context.deleteDirectory(join('sub2_that_should_not_exists'));
       // await context.devSetDebugModeOn(true);
       var path = await context.deleteDirectory(
         join('sub2_that_should_not_exists', 'sub_sub'),
       );
+      print('path: $path');
       var dbPath = join(path, 'open.db');
-      var db = await factory.openDatabase(dbPath);
-      try {} finally {
-        await db.close();
-      }
+      var db = await factory.openDatabase(dbPath, options: options);
+      await db.close();
     });
 
     test('isOpen', () async {
@@ -761,7 +771,7 @@ void run(SqfliteTestContext context) {
       await db1.close();
       await db2.close();
       await db3.close(); // safe to close the same instance
-    });
+    }, skip: !context.supportsMultipleInstances);
 
     test('single/multi instance', () async {
       // await utils.devSetDebugModeOn(true);
@@ -783,7 +793,35 @@ void run(SqfliteTestContext context) {
       await db1.close();
       await db2.close();
       await db3.close(); // safe to close the same instance
-    });
+    }, skip: !context.supportsMultipleInstances);
+
+    test('multi instance not supported', () async {
+      // Web: a persistent database cannot be opened more than once.
+      var path = await context.initDeleteDb('multi_instance_not_supported.db');
+      await expectLater(
+        factory.openDatabase(
+          path,
+          options: OpenDatabaseOptions(singleInstance: false),
+        ),
+        throwsArgumentError,
+      );
+      // The database can still be opened normally.
+      var db = await factory.openDatabase(path);
+      await db.close();
+
+      // In memory databases are private so they can be opened multiple times.
+      var db1 = await factory.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(singleInstance: false),
+      );
+      var db2 = await factory.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(singleInstance: false),
+      );
+      verify(db1 != db2);
+      await db1.close();
+      await db2.close();
+    }, skip: context.supportsMultipleInstances);
 
     /// Use single instance to force its value (which default to true).
     Future<void> testInMemoryDatabase(
@@ -835,34 +873,30 @@ void run(SqfliteTestContext context) {
           );
         });
 
-        test(
-          'uri int shared cache',
-          () async {
-            var dbFactory = factory; // .debugQuickLoggerWrapper();
-            var path = 'file:memdb2?mode=memory&cache=shared';
-            await dbFactory.deleteDatabase(path);
-            var db1 = await dbFactory.openDatabase(
-              path,
-              options: OpenDatabaseOptions(singleInstance: false),
-            );
-            var db2 = await dbFactory.openDatabase(
-              path,
-              options: OpenDatabaseOptions(singleInstance: false),
-            );
+        test('uri int shared cache', () async {
+          var dbFactory = factory; // .debugQuickLoggerWrapper();
+          var path = 'file:memdb2?mode=memory&cache=shared';
+          await dbFactory.deleteDatabase(path);
+          var db1 = await dbFactory.openDatabase(
+            path,
+            options: OpenDatabaseOptions(singleInstance: false),
+          );
+          var db2 = await dbFactory.openDatabase(
+            path,
+            options: OpenDatabaseOptions(singleInstance: false),
+          );
 
-            verify(db1 != db2);
-            await db1.execute(
-              'CREATE TABLE IF NOT EXISTS Test(id INTEGER PRIMARY KEY)',
-            );
-            await db1.insert('Test', <String, Object?>{'id': 1});
-            expect(await db2.query('Test'), [
-              {'id': 1},
-            ]);
-            await db1.close();
-            await db2.close();
-          },
-          skip: 'uri mode not consistently working with shared cache',
-        );
+          verify(db1 != db2);
+          await db1.execute(
+            'CREATE TABLE IF NOT EXISTS Test(id INTEGER PRIMARY KEY)',
+          );
+          await db1.insert('Test', <String, Object?>{'id': 1});
+          expect(await db2.query('Test'), [
+            {'id': 1},
+          ]);
+          await db1.close();
+          await db2.close();
+        }, skip: 'uri mode not consistently working with shared cache');
 
         test('uri absolute', () async {
           var path = await context.initDeleteDb('uri_absolute.db');

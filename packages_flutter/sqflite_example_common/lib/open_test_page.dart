@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
@@ -13,6 +12,7 @@ import 'package:synchronized/synchronized.dart';
 
 import 'src/common_import.dart';
 import 'test_page.dart';
+
 // ignore_for_file: avoid_slow_async_io
 // ignore_for_file: avoid_print
 
@@ -136,7 +136,7 @@ Future<bool> isDatabase(String path) async {
 /// Open test page.
 class OpenTestPage extends TestPage {
   /// Open test page.
-  OpenTestPage({Key? key}) : super('Open tests', key: key) {
+  OpenTestPage({super.key}) : super('Open tests') {
     final factory = databaseFactory;
 
     test('Databases path', () async {
@@ -768,8 +768,7 @@ class OpenTestPage extends TestPage {
     });
 
     test('In memory database', () async {
-      const inMemoryPath =
-          inMemoryDatabasePath; // tried null without success, as it crashes on Android
+      const inMemoryPath = inMemoryDatabasePath; // tried null without success, as it crashes on Android
       const path = inMemoryPath;
 
       var db = await openDatabase(path);

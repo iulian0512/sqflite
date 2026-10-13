@@ -5,7 +5,6 @@ import 'dart:io';
 
 import 'package:path/path.dart';
 import 'package:process_run/shell.dart';
-import 'package:sqflite_common_ffi/src/windows/setup.dart';
 import 'package:test/test.dart';
 
 Future<void> main() async {
@@ -26,9 +25,6 @@ Future<void> main() async {
           await Directory('windows').delete(recursive: true);
         } catch (_) {}
         await shell.run('''
-    # needed only once
-    flutter config --enable-windows-desktop
-    
     # Create windows project
     flutter create --platforms windows .
     flutter build windows --target test/ffi_create_and_exit_main.dart
@@ -58,8 +54,6 @@ Future<void> main() async {
       try {
         await File(dbFile).delete();
       } catch (_) {}
-
-      await File(findWindowsDllPath()!).copy(join(exeDir, 'sqlite3.dll'));
 
       expect(File(dbFile).existsSync(), isFalse);
       await runAppShell.run(shellArgument(absoluteExePath));
