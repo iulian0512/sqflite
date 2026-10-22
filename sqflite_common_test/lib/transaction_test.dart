@@ -105,7 +105,7 @@ void run(SqfliteTestContext context) {
 
     test('Concurrency 2', () async {
       // utils.devSetDebugModeOn(true);
-      var path = await context.initDeleteDb('simple_concurrency_1.db');
+      var path = await context.initDeleteDb('simple_concurrency_2.db');
       var db = await factory.openDatabase(path);
       var step1 = Completer<dynamic>();
       var step2 = Completer<dynamic>();
@@ -291,7 +291,7 @@ void run(SqfliteTestContext context) {
       await db1.close();
       await db2.close();
       await db3.close();
-    });
+    }, timeout: const Timeout(Duration(seconds: 150)));
 
     test('Transaction recursive', () async {
       var path = await context.initDeleteDb('transaction_recursive.db');
@@ -349,6 +349,36 @@ void run(SqfliteTestContext context) {
       await db.close();
       await db2.close();
     });
+    test('Transaction query cursor closed early', () async {
+      var path = await context.initDeleteDb('transaction_cursor_close.db');
+      var db = await factory.openDatabase(path);
+      try {
+        await db.execute('CREATE TABLE Test (id INTEGER PRIMARY KEY)');
+        var batch = db.batch();
+        for (var i = 1; i <= 3; i++) {
+          batch.insert('Test', <String, Object?>{'id': i});
+        }
+        await batch.commit(noResult: true);
+        // Closing a cursor before its end in a transaction used to hang.
+        var id = await db
+            .transaction((txn) async {
+              var cursor = await txn.queryCursor(
+                'Test',
+                orderBy: 'id',
+                bufferSize: 1,
+              );
+              expect(await cursor.moveNext(), isTrue);
+              var id = cursor.current['id'];
+              await cursor.close();
+              return id;
+            })
+            .timeout(const Duration(seconds: 10));
+        expect(id, 1);
+      } finally {
+        await db.close();
+      }
+    });
+
     test('Transaction and concurrent call without synchronized', () async {
       // await factory.debugSetLogLevel(sqfliteLogLevelVerbose);
       var db = await factory.openDatabase(inMemoryDatabasePath);
@@ -530,6 +560,56 @@ void run(SqfliteTestContext context) {
         await db.close();
       }
     });
+
+    test('failed commit (deferred foreign key)', () async {
+      var path = await context.initDeleteDb('failed_commit_deferred_fk.db');
+      var db = await factory.openDatabase(
+        path,
+        options: OpenDatabaseOptions(
+          version: 1,
+          onConfigure: (db) async {
+            await db.execute('PRAGMA foreign_keys = ON');
+          },
+          onCreate: (db, version) async {
+            await db.execute('CREATE TABLE Parent (id INTEGER PRIMARY KEY)');
+            await db.execute(
+              'CREATE TABLE Child (id INTEGER PRIMARY KEY, parent_id INTEGER'
+              ' REFERENCES Parent(id) DEFERRABLE INITIALLY DEFERRED)',
+            );
+          },
+        ),
+      );
+      try {
+        try {
+          await db.transaction((txn) async {
+            // Missing parent, only checked on COMMIT.
+            await txn.insert('Child', {'id': 1, 'parent_id': 1});
+          });
+          fail('COMMIT should fail');
+        } on DatabaseException catch (_) {
+          // FOREIGN KEY constraint failed
+        }
+        // The failed transaction must not block the next calls...
+        expect(
+          await db.query('Child').timeout(const Duration(seconds: 10)),
+          isEmpty,
+        );
+        // ...nor the next transaction.
+        await db
+            .transaction((txn) async {
+              await txn.insert('Parent', {'id': 1});
+              await txn.insert('Child', {'id': 1, 'parent_id': 1});
+            })
+            .timeout(const Duration(seconds: 10));
+        expect(await db.query('Child'), [
+          {'id': 1, 'parent_id': 1},
+        ]);
+      } finally {
+        await db.close();
+      }
+      // Only fixed in the Android plugin so far, ffi and darwin still block.
+    }, skip: !(context.isPlugin && context.isAndroid));
+
     test('throw in transaction', () async {
       var path = await context.initDeleteDb('throw_in_transaction.db');
 
